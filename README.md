@@ -3,6 +3,8 @@
 就寝前ルーティン・目覚まし・睡眠記録をホログラムバッジで続けるための個人用ツール。
 ビルド不要の単一ページ構成（HTML / CSS / JS をすべて `index.html` に同梱）。
 
+**公開URL**: https://shiori-shii.github.io/mezamashi/ （`main` への push で自動デプロイ）
+
 ## 構成
 
 | ファイル | 役割 |
