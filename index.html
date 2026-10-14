@@ -297,9 +297,10 @@ input[type=text],input[type=time]{
 <header>
   <h1>◇ ホログラム目覚まし ◇</h1>
   <nav>
-    <button data-view="routine" class="on">就寝前ルーティン</button>
+    <button data-view="routine" class="on">ルーティン</button>
     <button data-view="alarm">目覚まし</button>
     <button data-view="calendar">カレンダー</button>
+    <button data-view="settings">設定</button>
   </nav>
 </header>
 
@@ -312,18 +313,23 @@ input[type=text],input[type=time]{
       <div id="tasks"></div>
       <div id="routine-status" class="center" style="margin-top:14px"></div>
     </div>
-    <div class="card">
-      <h2>タスクを追加</h2>
-      <div class="row">
-        <input type="text" id="new-task" class="grow" placeholder="例：ストレッチをする">
-        <button class="btn" id="add-task">追加</button>
-      </div>
-      <p class="muted" style="margin:10px 0 0">各タスクの ✎ で編集、✕ で削除できます。</p>
-    </div>
   </section>
 
   <!-- ============ アラーム ============ -->
   <section id="v-alarm">
+    <div class="card">
+      <h2>アラーム</h2>
+      <div class="row">
+        <div class="grow">
+          <div id="alarm-state" style="font-weight:800;font-size:17px;letter-spacing:.08em"></div>
+          <div class="muted" id="alarm-next"></div>
+        </div>
+        <button class="btn primary" id="toggle-alarm">ONにする</button>
+      </div>
+      <div class="cd" id="countdown"></div>
+      <div class="warn" id="alarm-warn"></div>
+    </div>
+
     <div class="card">
       <h2>予定時刻</h2>
       <div class="row">
@@ -337,37 +343,40 @@ input[type=text],input[type=time]{
     </div>
 
     <div class="card">
-      <h2>アラーム</h2>
+      <h2>今夜の記録</h2>
+      <button class="btn big primary" id="rec-bed" style="margin-bottom:10px">いま就寝する</button>
+      <button class="btn big" id="rec-wake">いま起床した</button>
+      <div id="rec-status" style="margin-top:14px"></div>
+    </div>
+  </section>
+
+  <!-- ============ 設定 ============ -->
+  <section id="v-settings">
+    <div class="card">
+      <h2>アラーム音</h2>
+      <div class="seg" id="sound-seg" style="margin:0">
+        <button data-snd="beep">ビープ</button>
+        <button data-snd="siren">サイレン</button>
+        <button data-snd="soft">やわらか</button>
+        <button data-snd="custom">マイ音源</button>
+      </div>
+      <div class="row" id="custom-row" style="margin-top:10px">
+        <div class="grow muted" id="custom-name"></div>
+        <label class="btn sm" for="snd-file">音源を選ぶ</label>
+        <input type="file" id="snd-file" style="display:none"
+               accept="audio/*,.m4a,.mp3,.aac,.wav,.caf,.aiff,.aif,.mp4">
+        <button class="btn sm ghost" id="snd-clear">削除</button>
+      </div>
+      <p class="muted" style="margin:10px 0 0;font-size:11px;line-height:1.6">
+        タップで試聴できます。マイ音源はM4A・MP3・WAVなどが使えます（保護された曲は不可）。
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>停止方法</h2>
       <div class="row">
         <div class="grow">
-          <div id="alarm-state" style="font-weight:800;font-size:17px;letter-spacing:.08em"></div>
-          <div class="muted" id="alarm-next"></div>
-        </div>
-        <button class="btn primary" id="toggle-alarm">ONにする</button>
-      </div>
-      <div class="cd" id="countdown"></div>
-
-      <div style="margin-top:10px">
-        <div class="muted" style="margin-bottom:7px">アラーム音</div>
-        <div class="seg" id="sound-seg" style="margin:0">
-          <button data-snd="beep">ビープ</button>
-          <button data-snd="siren">サイレン</button>
-          <button data-snd="soft">やわらか</button>
-          <button data-snd="custom">マイ音源</button>
-        </div>
-        <div class="row" id="custom-row" style="margin-top:8px">
-          <div class="grow muted" id="custom-name"></div>
-          <label class="btn sm" for="snd-file">音源を選ぶ</label>
-          <input type="file" id="snd-file" style="display:none"
-                 accept="audio/*,.m4a,.mp3,.aac,.wav,.caf,.aiff,.aif,.mp4">
-          <button class="btn sm ghost" id="snd-clear">削除</button>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="grow">
-          <div>停止方法</div>
-          <div class="muted" id="qr-state"></div>
+          <div id="qr-state"></div>
         </div>
         <button class="btn" id="toggle-qr">切替</button>
       </div>
@@ -384,7 +393,10 @@ input[type=text],input[type=time]{
           カメラの許可を毎回聞かれる場合は、iPhoneの「設定」→「アプリ」→「目覚まし」→「カメラ」を<b>許可</b>にしてください。
         </p>
       </div>
+    </div>
 
+    <div class="card">
+      <h2>動作とテスト</h2>
       <div class="row">
         <div class="grow">
           <div>画面の扱い</div>
@@ -392,19 +404,19 @@ input[type=text],input[type=time]{
         </div>
         <button class="btn" id="toggle-keep">切替</button>
       </div>
-
       <div class="row">
         <button class="btn ghost sm grow" id="test-alarm">すぐ鳴らす</button>
         <button class="btn ghost sm grow" id="test-30">30秒後にテスト</button>
       </div>
-      <div class="warn" id="alarm-warn"></div>
     </div>
 
     <div class="card">
-      <h2>今夜の記録</h2>
-      <button class="btn big primary" id="rec-bed" style="margin-bottom:10px">いま就寝する</button>
-      <button class="btn big" id="rec-wake">いま起床した</button>
-      <div id="rec-status" style="margin-top:14px"></div>
+      <h2>就寝前ルーティンのタスク</h2>
+      <div id="task-edit"></div>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="new-task" class="grow" placeholder="例：ストレッチをする">
+        <button class="btn" id="add-task">追加</button>
+      </div>
     </div>
   </section>
 
@@ -441,6 +453,25 @@ input[type=text],input[type=time]{
     <h3>⏰ 起床時刻です</h3>
     <div class="time" id="ring-time">--:--</div>
     <div id="ring-body"></div>
+  </div>
+</div>
+
+<div class="ov" id="wakeask">
+  <div class="panel">
+    <h3>おはようございます</h3>
+    <p class="muted" style="margin:0 0 16px">起床しましたか？<br>「起床しました」を押した時刻を記録します。</p>
+    <button class="btn big primary" id="wake-yes">起床しました</button>
+    <button class="btn big ghost" id="snooze-open" style="margin-top:10px">スヌーズ</button>
+    <div id="snooze-pick" style="display:none;margin-top:14px">
+      <div class="muted" style="margin-bottom:8px">何分後に鳴らしますか？</div>
+      <div class="seg" id="snooze-seg" style="margin:0">
+        <button data-min="5">5分</button>
+        <button data-min="10">10分</button>
+        <button data-min="15">15分</button>
+        <button data-min="20">20分</button>
+        <button data-min="30">30分</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -606,16 +637,42 @@ function renderRoutine(){
 
   const box = $('tasks');
   box.innerHTML = '';
-  if (!S.tasks.length) box.innerHTML = '<p class="muted">タスクがありません。下から追加してください。</p>';
+  if (!S.tasks.length)
+    box.innerHTML = '<p class="muted">タスクがありません。設定タブで追加してください。</p>';
   S.tasks.forEach(t => {
     const done = (rec.routine || []).includes(t.id);
     const el = document.createElement('div');
     el.className = 'task' + (done ? ' done' : '') + (t.id === justId ? ' just' : '');
-    el.innerHTML = `<div class="chk">${done ? '✓' : ''}</div><div class="t"></div>
+    el.innerHTML = `<div class="chk">${done ? '✓' : ''}</div><div class="t"></div>`;
+    el.querySelector('.t').textContent = t.title;
+    el.onclick = () => toggleTask(t.id);
+    box.appendChild(el);
+  });
+
+  const n = (rec.routine || []).length, total = S.tasks.length;
+  $('prog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
+  const streak = routineStreak();
+  $('routine-status').innerHTML = (routineRank(rec)
+      ? badgeHTML('holo','ルーティン達成')
+      : `<span class="muted">${n} / ${total} 完了　あと ${total - n} 個</span>`)
+    + (streak ? `<div class="streak" style="margin-top:8px">連続達成 <b>${streak}</b> 日</div>` : '');
+}
+
+/* 設定タブ側のタスク管理（追加・編集・削除） */
+function renderTaskEditor(){
+  const box = $('task-edit');
+  box.innerHTML = '';
+  if (!S.tasks.length){
+    box.innerHTML = '<p class="muted">タスクがありません。下から追加してください。</p>';
+    return;
+  }
+  S.tasks.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'task';
+    el.innerHTML = `<div class="t"></div>
       <button class="btn sm ghost" data-act="edit">✎</button>
       <button class="btn sm ghost" data-act="del">✕</button>`;
     el.querySelector('.t').textContent = t.title;
-    el.querySelector('.chk').onclick = () => toggleTask(t.id);
     el.querySelector('[data-act=edit]').onclick = () => {
       const v = prompt('タスク名', t.title);
       if (v && v.trim()){ t.title = v.trim(); save(); renderAll(); }
@@ -627,14 +684,6 @@ function renderRoutine(){
     };
     box.appendChild(el);
   });
-
-  const n = (rec.routine || []).length, total = S.tasks.length;
-  $('prog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
-  const streak = routineStreak();
-  $('routine-status').innerHTML = (routineRank(rec)
-      ? badgeHTML('holo','ルーティン達成')
-      : `<span class="muted">${n} / ${total} 完了　あと ${total - n} 個</span>`)
-    + (streak ? `<div class="streak" style="margin-top:8px">連続達成 <b>${streak}</b> 日</div>` : '');
 }
 
 function toggleTask(id){
@@ -746,10 +795,10 @@ function renderAlarm(){
 }
 function renderCountdown(){
   const el = $('countdown');
-  if (!S.settings.alarmOn || !AL.target || AL.ringing){ el.style.display = 'none'; return; }
+  if (!AL.target || AL.ringing){ el.style.display = 'none'; return; }
   el.style.display = 'block';
   const s = Math.max(0, Math.round((AL.target - Date.now()) / 1000));
-  el.innerHTML = `起床まで <b>${Math.floor(s/3600)}</b> 時間 <b>${Math.floor(s%3600/60)}</b> 分 <b>${s%60}</b> 秒`;
+  el.innerHTML = `鳴るまで <b>${Math.floor(s/3600)}</b> 時間 <b>${Math.floor(s%3600/60)}</b> 分 <b>${s%60}</b> 秒`;
 }
 function renderWarn(){
   const st = S.settings, w = [];
@@ -976,7 +1025,7 @@ function keeperTick(){
   const now = Date.now();
   if (now - (AL.lastTick || 0) < 900) return;        // 毎秒1回に間引く
   AL.lastTick = now;
-  if (S.settings.alarmOn && AL.target && !AL.fileRinging && now >= AL.target - 150){
+  if (AL.target && !AL.fileRinging && now >= AL.target - 150){
     playAlarmFile(); fire();
   }
 }
@@ -1128,10 +1177,37 @@ function stopAlarm(){
   AL.ringing = false;
   vibrateStop(); muteNow(); restoreKeeper(); closeCam();
   $('ring').classList.remove('on');
-  if (S.settings.alarmOn){ AL.target = nextWakeTime(); schedule(); }  // 翌日を再予約
+  AL.target = S.settings.alarmOn ? nextWakeTime() : null;   // 翌日を再予約
+  schedule();
   renderAlarm();
+  if (!AL.isTest) askWake();        // 起床確認（記録はここを押した時刻）
+  AL.isTest = false;
 }
-$('test-alarm').onclick = async () => { await armAudio(); fire(); };
+
+/* ---- 起床確認とスヌーズ ---- */
+function askWake(){
+  $('snooze-pick').style.display = 'none';
+  $('snooze-open').style.display = '';
+  $('wakeask').classList.add('on');
+}
+$('wake-yes').onclick = () => {
+  $('wakeask').classList.remove('on');
+  record('wake');                   // 押した時刻で記録・バッジ判定
+};
+$('snooze-open').onclick = () => {
+  $('snooze-open').style.display = 'none';
+  $('snooze-pick').style.display = 'block';
+};
+document.querySelectorAll('#snooze-seg button').forEach(b => b.onclick = async () => {
+  const m = Number(b.dataset.min);
+  $('wakeask').classList.remove('on');
+  await armAudio();                 // 画面を触っているのでここで音声を確実に有効化
+  AL.target = Date.now() + m * 60000;
+  schedule(); renderAlarm();
+  note(`<b>${m}分後</b>にもう一度鳴らします`);
+});
+
+$('test-alarm').onclick = async () => { await armAudio(); AL.isTest = true; fire(); };
 $('test-30').onclick = async () => {
   await armAudio();
   AL.target = Date.now() + 30000; schedule(); renderAlarm();
@@ -1140,13 +1216,13 @@ $('test-30').onclick = async () => {
 
 /* ---- 見張り（タイマーが絞られても復帰時に検知） ---- */
 setInterval(() => {
-  if (S.settings.alarmOn && AL.target && !AL.ringing && Date.now() >= AL.target) fire();
+  if (AL.target && !AL.ringing && Date.now() >= AL.target) fire();
   if (document.getElementById('v-alarm').classList.contains('on')) renderCountdown();
 }, 1000);
 document.addEventListener('visibilitychange', async () => {
   if (document.hidden){ releaseCam(); return; }   // 背面でカメラを掴み続けない
-  if (AL.ctx && AL.ctx.state === 'suspended' && S.settings.alarmOn){ try{ await AL.ctx.resume(); }catch(e){} }
-  if (S.settings.alarmOn && AL.target){
+  if (AL.ctx && AL.ctx.state === 'suspended' && AL.target){ try{ await AL.ctx.resume(); }catch(e){} }
+  if (AL.target){
     if (Date.now() >= AL.target) fire();
     else if (!AL.ringing) schedule();        // suspend で currentTime がずれるため再予約
     if (S.settings.keepScreen) requestWakeLock();
@@ -1393,7 +1469,7 @@ function showDetail(key){
 }
 
 /* ===================== 初期化 ===================== */
-function renderAll(){ renderRoutine(); renderAlarm(); renderCalendar(); }
+function renderAll(){ renderRoutine(); renderTaskEditor(); renderAlarm(); renderCalendar(); }
 renderAll();
 
 // PWA（ホーム画面に追加して全画面起動・オフライン動作）
