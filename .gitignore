@@ -1,0 +1,9 @@
+# OS / クラウド同期
+.DS_Store
+Thumbs.db
+desktop.ini
+.dropbox*
+
+# 作業用
+_chk.js
+*.tmp

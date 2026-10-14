@@ -1,0 +1,1269 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ホログラム目覚まし</title>
+<meta name="theme-color" content="#0b0f1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="目覚まし">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<link rel="icon" href="./icon-32.png">
+<style>
+:root{
+  --bg:#0b0f1e; --bg2:#121833; --card:#171f3d; --line:#2a3360;
+  --fg:#e8ecff; --muted:#93a0cc; --accent:#7cc8ff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 600px at 50% -10%,#1d2550,#0b0f1e 60%);
+  color:var(--fg);
+  font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic UI",sans-serif;
+  min-height:100vh;overflow-x:hidden;
+  padding-bottom:calc(40px + env(safe-area-inset-bottom));
+}
+header{text-align:center;padding:calc(18px + env(safe-area-inset-top)) 16px 8px}
+h1{font-size:18px;margin:0 0 14px;letter-spacing:.08em;font-weight:600}
+nav{display:flex;gap:6px;max-width:520px;margin:0 auto;padding:0 16px}
+nav button{
+  flex:1;padding:10px 4px;border:1px solid var(--line);background:var(--bg2);
+  color:var(--muted);border-radius:10px;font-size:13px;cursor:pointer;font-family:inherit;
+}
+nav button{position:relative;overflow:hidden;transition:color .2s,background .2s}
+nav button.on{background:var(--card);color:var(--fg);border-color:var(--accent)}
+nav button.on::after{
+  content:"";position:absolute;left:7px;right:7px;bottom:3px;height:3px;
+  background:linear-gradient(90deg,#5ec8f2,#a8e4ff);transform:skewX(-20deg);
+  animation:tabBar .3s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes tabBar{0%{transform:skewX(-20deg) scaleX(0);opacity:0}100%{transform:skewX(-20deg) scaleX(1);opacity:1}}
+section.on>.card{animation:cardIn .42s cubic-bezier(.16,1,.3,1) both}
+section.on>.card:nth-of-type(2){animation-delay:.07s}
+section.on>.card:nth-of-type(3){animation-delay:.14s}
+@keyframes cardIn{0%{transform:translate(14px,10px);opacity:0}100%{transform:none;opacity:1}}
+.btn:active{transform:scale(.96)}
+main{max-width:520px;margin:16px auto;padding:0 16px}
+section{display:none}
+section.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.card h2{font-size:14px;margin:0 0 10px;color:var(--muted);font-weight:600;letter-spacing:.06em}
+.row{display:flex;align-items:center;gap:10px}
+.row+.row{margin-top:10px}
+.grow{flex:1;min-width:0}
+.muted{color:var(--muted);font-size:12px}
+.center{text-align:center}
+button,input,select{font-family:inherit;font-size:14px}
+input[type=text],input[type=time]{
+  background:#0e1430;border:1px solid var(--line);color:var(--fg);
+  border-radius:9px;padding:9px 10px;width:100%;
+}
+.btn{
+  border:1px solid var(--line);background:#1e2750;color:var(--fg);
+  border-radius:10px;padding:10px 14px;cursor:pointer;white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:linear-gradient(135deg,#3a6df0,#6f4bf2);border:none}
+.btn.ghost{background:transparent}
+.btn.sm{padding:6px 9px;font-size:12px}
+.btn.big{width:100%;padding:14px;font-size:15px;font-weight:600}
+.seg{display:flex;gap:4px;margin-bottom:12px}
+.seg button{
+  flex:1;padding:7px;border:1px solid var(--line);background:#0e1430;color:var(--muted);
+  border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;
+}
+.seg button.on{background:#1e2750;color:var(--fg);border-color:var(--accent)}
+
+/* ---- タスク ---- */
+.task{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.task:last-of-type{border-bottom:none}
+.task .chk{
+  width:28px;height:28px;border-radius:9px;border:1px solid var(--line);
+  background:#0e1430;cursor:pointer;flex:none;display:grid;place-items:center;font-size:16px;
+  transition:transform .18s cubic-bezier(.2,1.6,.4,1);
+}
+.task.done .chk{background:linear-gradient(135deg,#43e0a8,#2fb5e8);border:none;color:#06241c}
+.task.done .t{color:var(--muted);text-decoration:line-through}
+.task{position:relative}
+.task.just{animation:rowHit .5s ease-out}
+.task.just .chk{animation:chkHit .5s cubic-bezier(.16,1,.3,1)}
+@keyframes rowHit{
+  0%{background:linear-gradient(100deg,rgba(94,200,242,.45),rgba(94,200,242,.08) 55%,transparent 75%)}
+  100%{background:transparent}}
+@keyframes chkHit{0%{transform:scale(.6) rotate(-14deg)}45%{transform:scale(1.32) rotate(4deg)}100%{transform:scale(1)}}
+.task .t{flex:1;min-width:0;word-break:break-word}
+.prog{height:8px;border-radius:99px;background:#0e1430;border:1px solid var(--line);overflow:hidden;margin:12px 0 10px}
+.prog>i{display:block;height:100%;width:0;border-radius:99px;
+  background:repeating-linear-gradient(115deg,rgba(255,255,255,.26) 0 5px,transparent 5px 11px),
+             linear-gradient(90deg,#2fb5e8,#43e0a8,#9bffc6);
+  background-size:22px 100%,100% 100%;
+  animation:stripes .7s linear infinite;
+  transition:width .55s cubic-bezier(.16,1,.3,1)}
+@keyframes stripes{to{background-position:22px 0,0 0}}
+.streak{font-size:12px;color:var(--muted)}
+.streak b{color:#ffd978;font-size:15px}
+
+/* ---- バッジ ---- */
+.badge{
+  position:relative;overflow:hidden;display:inline-block;
+  border-radius:999px;padding:5px 13px;font-size:12px;font-weight:700;
+  color:#1a1430;text-shadow:0 1px 0 rgba(255,255,255,.35);line-height:1.25;
+}
+.badge.lg{font-size:24px;padding:10px 26px}      /* ルーティンバッジの2倍 */
+.badge::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(110deg,transparent 25%,rgba(255,255,255,.8) 48%,transparent 68%);
+  transform:translateX(-130%);animation:shine 2.8s ease-in-out infinite;
+}
+@keyframes shine{0%{transform:translateX(-130%)}55%,100%{transform:translateX(130%)}}
+.holo{background:linear-gradient(115deg,#ff9ad5,#9ad7ff,#9bffc6,#fff59a,#d7a5ff,#ff9ad5);
+  background-size:300% 100%;animation:holoflow 4.5s linear infinite;
+  box-shadow:0 0 14px rgba(154,215,255,.45)}
+@keyframes holoflow{to{background-position:300% 0}}
+.gold{background:linear-gradient(135deg,#ffe9a8,#e8b63c,#fff3c4,#d99b1c)}
+.silver{background:linear-gradient(135deg,#f2f5ff,#aab6cf,#ffffff,#94a0bb)}
+.bronze{background:linear-gradient(135deg,#f0c49a,#b5712f,#ffd9b5,#a2622a)}
+.none{background:#232c52;color:var(--muted);text-shadow:none}
+.none::after{display:none}
+
+/* ---- カレンダー ---- */
+.calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.calhead .m{font-size:14px;font-weight:600;text-align:center;flex:1}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wd{text-align:center;font-size:10px;color:var(--muted);padding:2px 0}
+.cell{
+  aspect-ratio:1/1.1;border:1px solid var(--line);border-radius:9px;background:#0f1530;
+  padding:4px;display:flex;flex-direction:column;cursor:pointer;
+}
+.cell.empty{border:none;background:transparent;cursor:default}
+.cell.today{border-color:var(--accent)}
+.cell .d{font-size:11px;color:var(--muted)}
+.cell.has .d{color:var(--fg)}
+.chips{display:flex;align-items:flex-end;justify-content:center;gap:3px;margin-top:auto;min-height:14px}
+.chip{position:relative;overflow:hidden;border-radius:50%;flex:none}
+.chip.s{width:14px;height:14px}      /* 睡眠（2倍） */
+.chip.r{width:7px;height:7px}        /* ルーティン */
+.chip::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.9) 50%,transparent 70%);
+  transform:translateX(-130%);animation:shine 2.8s ease-in-out infinite}
+.chip.off{display:none}
+.week{margin-bottom:14px}
+.whead{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.whead .wr{font-size:12px;color:var(--muted);flex:1}
+.whead .ws{font-size:12px;color:var(--fg)}
+
+/* ---- オーバーレイ ---- */
+.ov{
+  position:fixed;inset:0;background:rgba(6,9,22,.86);backdrop-filter:blur(4px);
+  display:none;place-items:center;z-index:50;padding:20px;
+}
+.ov.on{display:grid}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;width:100%;max-width:400px}
+.panel h3{margin:0 0 12px;font-size:16px}
+.kv{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.kv:last-child{border-bottom:none}
+.kv>span:first-child{color:var(--muted);flex:none}
+
+/* ===== 達成演出（斜め・集中線・スナップ） ===== */
+#celebrate{text-align:center;position:relative;width:100%;max-width:420px}
+#celebrate .ttl{
+  display:inline-block;padding:7px 24px;margin-bottom:18px;position:relative;z-index:2;
+  font-size:15px;font-weight:800;letter-spacing:.14em;
+  background:linear-gradient(90deg,#16224d,#2f6fd0);
+  border-left:4px solid #a8e4ff;transform:skewX(-10deg);
+  box-shadow:0 8px 24px rgba(0,0,0,.45);
+  animation:baSlide .5s cubic-bezier(.16,1,.3,1) both;
+}
+#celebrate .ttl span{display:inline-block;transform:skewX(10deg)}
+#celebrate .pop{position:relative;z-index:2;animation:baPop .6s cubic-bezier(.16,1,.3,1) .18s both}
+#celebrate .sub{margin-top:16px;font-size:12px;letter-spacing:.08em;color:#cfe4ff;
+  position:relative;z-index:2;animation:baUp .45s cubic-bezier(.16,1,.3,1) .46s both}
+@keyframes baSlide{0%{transform:translateX(-70px) skewX(-10deg);opacity:0}
+  100%{transform:translateX(0) skewX(-10deg);opacity:1}}
+@keyframes baPop{0%{transform:scale(2.6);opacity:0}
+  40%{transform:scale(.92);opacity:1}70%{transform:scale(1.05)}100%{transform:scale(1)}}
+@keyframes baUp{0%{transform:translateY(16px);opacity:0}100%{transform:none;opacity:1}}
+
+/* 集中線 */
+.lines{
+  position:absolute;left:50%;top:46%;width:560px;height:560px;margin:-280px 0 0 -280px;z-index:0;
+  background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.9) 0deg 1.1deg,transparent 1.1deg 7deg);
+  -webkit-mask:radial-gradient(circle,transparent 26%,#000 52%,transparent 76%);
+          mask:radial-gradient(circle,transparent 26%,#000 52%,transparent 76%);
+  animation:baLines .85s ease-out both;pointer-events:none;
+}
+@keyframes baLines{0%{transform:scale(.3);opacity:0}20%{opacity:.95}
+  100%{transform:scale(2.3) rotate(10deg);opacity:0}}
+/* 回転光芒 */
+.rays{
+  position:absolute;left:50%;top:46%;width:480px;height:480px;margin:-240px 0 0 -240px;z-index:0;
+  background:repeating-conic-gradient(from 0deg,rgba(168,228,255,.55) 0deg 5deg,transparent 5deg 17deg);
+  -webkit-mask:radial-gradient(circle,#000 10%,transparent 68%);
+          mask:radial-gradient(circle,#000 10%,transparent 68%);
+  animation:spin 11s linear infinite,raysIn .6s ease-out both;pointer-events:none;
+}
+@keyframes raysIn{0%{opacity:0}100%{opacity:.55}}
+.halo{
+  position:absolute;left:50%;top:46%;width:420px;height:420px;margin:-210px 0 0 -210px;
+  border-radius:50%;z-index:0;opacity:.45;
+  background:conic-gradient(#ff9ad5,#9ad7ff,#9bffc6,#fff59a,#d7a5ff,#ff9ad5);
+  filter:blur(40px);animation:spin 5s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spark{position:absolute;width:7px;height:7px;border-radius:2px;background:#fff;z-index:1;
+  animation:fly 1s ease-out forwards}
+@keyframes fly{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:55}
+#flash.on{animation:flash .55s ease-out}
+@keyframes flash{0%{opacity:.8}100%{opacity:0}}
+
+/* ===== 小さな通知（達成以外のフィードバック） ===== */
+#note{position:fixed;left:0;right:0;bottom:20px;z-index:60;pointer-events:none;text-align:center;padding:0 16px}
+.notebox{
+  display:inline-block;padding:9px 16px;border-radius:10px;font-size:12px;line-height:1.5;
+  background:rgba(16,24,52,.96);border:1px solid var(--line);border-left:3px solid #5ec8f2;
+  color:var(--fg);box-shadow:0 6px 18px rgba(0,0,0,.45);
+  animation:noteIn 1.9s cubic-bezier(.16,1,.3,1) both;
+}
+.notebox b{color:#a8e4ff;font-weight:700}
+@keyframes noteIn{
+  0%{transform:translateY(12px);opacity:0}
+  12%{transform:none;opacity:1}
+  84%{transform:none;opacity:1}
+  100%{transform:translateY(-6px);opacity:0}
+}
+
+/* ===== 1個達成タグ ===== */
+#toast{position:fixed;left:0;right:0;top:32%;z-index:60;pointer-events:none;text-align:center}
+.getwrap{position:relative;display:inline-block}
+.minilines{
+  position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px;z-index:0;
+  background:repeating-conic-gradient(from 0deg,rgba(168,228,255,.8) 0deg 1deg,transparent 1deg 9deg);
+  -webkit-mask:radial-gradient(circle,transparent 22%,#000 48%,transparent 72%);
+          mask:radial-gradient(circle,transparent 22%,#000 48%,transparent 72%);
+  animation:baLines .7s ease-out both;
+}
+.gettag{
+  position:relative;z-index:1;overflow:hidden;display:inline-block;padding:10px 24px;
+  background:linear-gradient(90deg,rgba(18,30,70,.97),rgba(47,111,208,.97));
+  border-left:4px solid #a8e4ff;box-shadow:0 10px 28px rgba(0,0,0,.5);
+  animation:getTag 1.15s cubic-bezier(.16,1,.3,1) both;
+}
+.gettag>div{transform:skewX(10deg)}
+.gettag .m{font-size:26px;font-weight:900;letter-spacing:.16em;line-height:1.1;
+  background:linear-gradient(100deg,#fff,#a8e4ff,#fff);background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:holoflow 2s linear infinite}
+.gettag .s{font-size:11px;letter-spacing:.08em;color:#cfe4ff;margin-top:3px;font-weight:700}
+.gettag::after{
+  content:"";position:absolute;inset:0;z-index:2;
+  background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.6) 50%,transparent 70%);
+  transform:translateX(-140%);animation:sweep .75s ease-out .18s both;
+}
+@keyframes sweep{to{transform:translateX(140%)}}
+@keyframes getTag{
+  0%{transform:translateX(-70px) skewX(-10deg);opacity:0}
+  18%{transform:translateX(0) skewX(-10deg);opacity:1}
+  76%{transform:translateX(0) skewX(-10deg);opacity:1}
+  100%{transform:translateX(50px) skewX(-10deg);opacity:0}
+}
+
+/* アラーム設定 */
+.cd{display:none;text-align:center;font-size:13px;color:#cfe4ff;letter-spacing:.06em;
+  padding:10px;margin:4px 0 2px;border-radius:10px;
+  background:linear-gradient(100deg,rgba(47,111,208,.22),rgba(47,111,208,.05));
+  border-left:3px solid #5ec8f2}
+.cd b{font-size:22px;font-weight:900;color:#fff;margin:0 2px}
+.warn{margin-top:12px;font-size:11px;line-height:1.7;color:#a9b6dd}
+.warn div{padding-left:2px}
+.warn b{color:#ffd978;font-weight:700}
+.camwrap{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:1/1}
+.camwrap video{width:100%;height:100%;object-fit:cover;display:block}
+.camframe{position:absolute;inset:16%;border:2px solid rgba(168,228,255,.9);border-radius:10px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.35);animation:camPulse 1.6s ease-in-out infinite}
+@keyframes camPulse{0%,100%{opacity:.6}50%{opacity:1}}
+
+/* アラーム鳴動 */
+#ring .time{font-size:46px;font-weight:800;text-align:center;margin:6px 0 16px;letter-spacing:.04em}
+#ring .panel{animation:shake .9s ease-in-out infinite}
+@keyframes shake{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>◇ ホログラム目覚まし ◇</h1>
+  <nav>
+    <button data-view="routine" class="on">就寝前ルーティン</button>
+    <button data-view="alarm">目覚まし</button>
+    <button data-view="calendar">カレンダー</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============ ルーティン ============ -->
+  <section id="v-routine" class="on">
+    <div class="card">
+      <h2>今夜のルーティン <span id="night-label" class="muted"></span></h2>
+      <div class="prog"><i id="prog-bar"></i></div>
+      <div id="tasks"></div>
+      <div id="routine-status" class="center" style="margin-top:14px"></div>
+    </div>
+    <div class="card">
+      <h2>タスクを追加</h2>
+      <div class="row">
+        <input type="text" id="new-task" class="grow" placeholder="例：ストレッチをする">
+        <button class="btn" id="add-task">追加</button>
+      </div>
+      <p class="muted" style="margin:10px 0 0">各タスクの ✎ で編集、✕ で削除できます。</p>
+    </div>
+  </section>
+
+  <!-- ============ アラーム ============ -->
+  <section id="v-alarm">
+    <div class="card">
+      <h2>予定時刻</h2>
+      <div class="row">
+        <div class="grow muted">就寝予定</div>
+        <input type="time" id="bed-plan" style="width:130px">
+      </div>
+      <div class="row">
+        <div class="grow muted">起床予定</div>
+        <input type="time" id="wake-plan" style="width:130px">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>アラーム</h2>
+      <div class="row">
+        <div class="grow">
+          <div id="alarm-state" style="font-weight:800;font-size:17px;letter-spacing:.08em"></div>
+          <div class="muted" id="alarm-next"></div>
+        </div>
+        <button class="btn primary" id="toggle-alarm">ONにする</button>
+      </div>
+      <div class="cd" id="countdown"></div>
+
+      <div class="row" style="align-items:flex-start">
+        <div class="grow muted" style="padding-top:7px">アラーム音</div>
+        <div class="seg" id="sound-seg" style="margin:0;flex:0 0 auto;width:210px">
+          <button data-snd="beep">ビープ</button>
+          <button data-snd="siren">サイレン</button>
+          <button data-snd="soft">やわらか</button>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <div>停止方法</div>
+          <div class="muted" id="qr-state"></div>
+        </div>
+        <button class="btn" id="toggle-qr">切替</button>
+      </div>
+      <div id="qr-box" style="display:none">
+        <div class="row">
+          <div class="grow muted" id="qr-reg-state"></div>
+          <button class="btn sm" id="qr-register">QRを登録</button>
+        </div>
+        <div class="row">
+          <div class="grow muted">予備の解除キーワード</div>
+          <input type="text" id="qr-text" style="width:120px">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="grow">
+          <div>画面の扱い</div>
+          <div class="muted" id="keep-state"></div>
+        </div>
+        <button class="btn" id="toggle-keep">切替</button>
+      </div>
+
+      <div class="row">
+        <button class="btn ghost sm grow" id="test-alarm">すぐ鳴らす</button>
+        <button class="btn ghost sm grow" id="test-30">30秒後にテスト</button>
+      </div>
+      <div class="warn" id="alarm-warn"></div>
+    </div>
+
+    <div class="card">
+      <h2>今夜の記録</h2>
+      <button class="btn big primary" id="rec-bed" style="margin-bottom:10px">いま就寝する</button>
+      <button class="btn big" id="rec-wake">いま起床した</button>
+      <div id="rec-status" style="margin-top:14px"></div>
+    </div>
+  </section>
+
+  <!-- ============ カレンダー ============ -->
+  <section id="v-calendar">
+    <div class="card">
+      <div class="seg" id="cal-seg">
+        <button data-cal="two" class="on">2週間</button>
+        <button data-cal="month">月</button>
+      </div>
+      <div class="calhead">
+        <button class="btn sm" id="cal-prev">‹</button>
+        <div class="m" id="cal-label"></div>
+        <button class="btn sm" id="cal-next">›</button>
+      </div>
+      <div id="cal-body"></div>
+      <p class="muted" style="margin:4px 0 0">● 大=就寝・起床セット／● 小=ルーティン　タップで詳細</p>
+    </div>
+    <div class="card">
+      <h2>バッジ獲得数（累計）</h2>
+      <div id="stats"></div>
+    </div>
+  </section>
+</main>
+
+<div id="flash"></div>
+<div id="toast"></div>
+<div id="note"></div>
+<div class="ov" id="ov-celebrate"><div id="celebrate"></div></div>
+<div class="ov" id="ov-detail"><div class="panel" id="detail"></div></div>
+
+<div class="ov" id="ring">
+  <div class="panel">
+    <h3>⏰ 起床時刻です</h3>
+    <div class="time" id="ring-time">--:--</div>
+    <div id="ring-body"></div>
+  </div>
+</div>
+
+<div class="ov" id="cam">
+  <div class="panel">
+    <h3 id="cam-title">QRコード</h3>
+    <div class="camwrap">
+      <video id="cam-video" playsinline muted></video>
+      <div class="camframe"></div>
+    </div>
+    <div class="muted" id="cam-msg" style="margin-top:10px;min-height:32px"></div>
+    <button class="btn big" id="cam-close" style="margin-top:6px">閉じる</button>
+  </div>
+</div>
+
+<script>
+/* ===================== データ ===================== */
+const KEY = 'mezamashi.v1';
+const DEFAULT_STATE = {
+  tasks: [
+    {id:'t1', title:'朝のプロテインを準備する'},
+    {id:'t2', title:'光目覚ましをセットする'},
+    {id:'t3', title:'着替えを準備する'}
+  ],
+  settings: {bedPlan:'23:00', wakePlan:'07:00', alarmOn:false, qrMode:false, qrText:'あさ',
+             sound:'beep', qrData:'', keepScreen:true},
+  days: {}   // "YYYY-MM-DD"(夜) -> {bedPlan, wakePlan, bedAt, wakeAt, routine:[taskId], routineAt}
+};
+let S;
+try { S = Object.assign({}, DEFAULT_STATE, JSON.parse(localStorage.getItem(KEY) || '{}')); }
+catch(e){ S = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
+S.settings = Object.assign({}, DEFAULT_STATE.settings, S.settings || {});
+S.tasks = S.tasks || [];
+S.days  = S.days  || {};
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+const $ = id => document.getElementById(id);
+
+/* ===================== 時刻 ===================== */
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const hm  = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const md  = d => `${d.getMonth()+1}/${d.getDate()}`;
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const parseKey = k => { const [y,m,d] = k.split('-').map(Number); return new Date(y, m-1, d); };
+
+// 「夜」単位で記録する。0:00〜11:59 は前日の夜に属する。
+function nightKey(now = new Date()){
+  const d = new Date(now);
+  if (d.getHours() < 12) d.setDate(d.getDate() - 1);
+  return ymd(d);
+}
+// 夜 key と "HH:MM" から実時刻。bed は午前なら翌日、wake は夕方前なら翌日。
+function instantFor(key, hhmm, kind){
+  const [h,m] = hhmm.split(':').map(Number);
+  const d = parseKey(key);
+  if ((kind === 'bed') ? (h < 12) : (h < 18)) d.setDate(d.getDate() + 1);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+function diffMin(key, plan, actualISO, kind){
+  if (!plan || !actualISO) return null;
+  return Math.round((new Date(actualISO) - instantFor(key, plan, kind)) / 60000);
+}
+
+/* ===================== バッジ ===================== */
+const ORDER = ['holo','gold','silver','bronze','none'];
+const RANK_LABEL = {holo:'ホログラム', gold:'金', silver:'銀', bronze:'銅', none:'バッジなし'};
+const RANK_SHORT = {holo:'HOLO', gold:'GOLD', silver:'SILVER', bronze:'BRONZE', none:'—'};
+function rankOf(diff){
+  if (diff === null) return null;
+  if (diff <= 0)  return 'holo';
+  if (diff <= 15) return 'gold';
+  if (diff <= 30) return 'silver';
+  if (diff <= 45) return 'bronze';
+  return 'none';
+}
+const worse = (a,b) => ORDER[Math.max(ORDER.indexOf(a), ORDER.indexOf(b))];
+function badgeHTML(rank, text, big){
+  if (!rank) return '<span class="muted">未記録</span>';
+  return `<span class="badge ${rank}${big ? ' lg' : ''}">${text || RANK_SHORT[rank]}</span>`;
+}
+function day(key, create = false){
+  if (!S.days[key] && create)
+    S.days[key] = {bedPlan:S.settings.bedPlan, wakePlan:S.settings.wakePlan, routine:[]};
+  return S.days[key];
+}
+// 就寝・起床がそろって初めて1バッジ（低いほうのランクを採用）
+function sleepRank(key){
+  const rec = S.days[key];
+  if (!rec || !rec.bedAt || !rec.wakeAt) return null;
+  const b = rankOf(diffMin(key, rec.bedPlan  || S.settings.bedPlan,  rec.bedAt,  'bed'));
+  const w = rankOf(diffMin(key, rec.wakePlan || S.settings.wakePlan, rec.wakeAt, 'wake'));
+  return worse(b, w);
+}
+function routineRank(rec){
+  if (!rec || !S.tasks.length) return null;
+  const n = (rec.routine || []).filter(id => S.tasks.some(t => t.id === id)).length;
+  return n >= S.tasks.length ? 'holo' : null;
+}
+const achieved = key => { const r = sleepRank(key); return !!r && r !== 'none'; };
+function weekRank(n){ return n >= 7 ? 'holo' : n === 6 ? 'gold' : n === 5 ? 'silver' : 'none'; }
+function weekStart(d){ const x = new Date(d); x.setHours(0,0,0,0); return addDays(x, -x.getDay()); }
+function weekKeys(ws){ return Array.from({length:7}, (_,i) => ymd(addDays(ws,i))); }
+
+/* ===================== サウンド ===================== */
+let ac = null;
+function tone(freq, dur = .3, type = 'sine', vol = .22, delay = 0){
+  try{
+    ac = AL.ctx || ac || new (window.AudioContext || window.webkitAudioContext)();
+    const t = ac.currentTime + delay;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + .02);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(g).connect(ac.destination);
+    o.start(t); o.stop(t + dur + .02);
+  }catch(e){}
+}
+const fanfare = () => [523,659,784,1047].forEach((f,i) => tone(f, .5, 'triangle', .2, i * .11));
+
+/* ===================== 画面切替 ===================== */
+document.querySelectorAll('nav button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+    document.querySelectorAll('main section').forEach(s =>
+      s.classList.toggle('on', s.id === 'v-' + b.dataset.view));
+    renderAll();
+  };
+});
+
+/* ===================== ルーティン ===================== */
+let justId = null;   // 直前にチェックしたタスク（行のヒット演出用）
+function routineStreak(){
+  let n = 0, d = parseKey(nightKey());
+  while (routineRank(S.days[ymd(d)])){ n++; d = addDays(d, -1); }
+  return n;
+}
+function renderRoutine(){
+  const key = nightKey(), rec = day(key, true);
+  $('night-label').textContent = `（${key} の夜）`;
+
+  const box = $('tasks');
+  box.innerHTML = '';
+  if (!S.tasks.length) box.innerHTML = '<p class="muted">タスクがありません。下から追加してください。</p>';
+  S.tasks.forEach(t => {
+    const done = (rec.routine || []).includes(t.id);
+    const el = document.createElement('div');
+    el.className = 'task' + (done ? ' done' : '') + (t.id === justId ? ' just' : '');
+    el.innerHTML = `<div class="chk">${done ? '✓' : ''}</div><div class="t"></div>
+      <button class="btn sm ghost" data-act="edit">✎</button>
+      <button class="btn sm ghost" data-act="del">✕</button>`;
+    el.querySelector('.t').textContent = t.title;
+    el.querySelector('.chk').onclick = () => toggleTask(t.id);
+    el.querySelector('[data-act=edit]').onclick = () => {
+      const v = prompt('タスク名', t.title);
+      if (v && v.trim()){ t.title = v.trim(); save(); renderAll(); }
+    };
+    el.querySelector('[data-act=del]').onclick = () => {
+      if (confirm(`「${t.title}」を削除しますか？`)){
+        S.tasks = S.tasks.filter(x => x.id !== t.id); save(); renderAll();
+      }
+    };
+    box.appendChild(el);
+  });
+
+  const n = (rec.routine || []).length, total = S.tasks.length;
+  $('prog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
+  const streak = routineStreak();
+  $('routine-status').innerHTML = (routineRank(rec)
+      ? badgeHTML('holo','ルーティン達成')
+      : `<span class="muted">${n} / ${total} 完了　あと ${total - n} 個</span>`)
+    + (streak ? `<div class="streak" style="margin-top:8px">連続達成 <b>${streak}</b> 日</div>` : '');
+}
+
+function toggleTask(id){
+  const key = nightKey(), rec = day(key, true);
+  rec.routine = rec.routine || [];
+  const was = routineRank(rec), had = rec.routine.includes(id);
+  rec.routine = had ? rec.routine.filter(x => x !== id) : [...rec.routine, id];
+  const now = routineRank(rec);
+  if (now && !was) rec.routineAt = new Date().toISOString();
+  justId = had ? null : id;
+  save(); renderAll();
+  clearTimeout(toggleTask._t);
+  toggleTask._t = setTimeout(() => { justId = null; }, 600);
+
+  if (had) return;                                  // 外したときは演出なし
+  const n = rec.routine.length, total = S.tasks.length;
+  if (now && !was){
+    flash();
+    fanfare();
+    celebrate('ALL CLEAR！', 'holo', 'ルーティン達成',
+      `連続達成 ${routineStreak()} 日目`, true);
+  } else {
+    tone(620 * Math.pow(1.18, n - 1), .22, 'triangle', .18);
+    toast('CLEAR', `${n} / ${total}　あと ${total - n} 個`);
+  }
+}
+$('add-task').onclick = () => {
+  const i = $('new-task'), v = i.value.trim();
+  if (!v) return;
+  S.tasks.push({id:'t' + Date.now(), title:v});
+  i.value = ''; save(); renderAll();
+};
+$('new-task').onkeydown = e => { if (e.key === 'Enter') $('add-task').click(); };
+
+/* ===================== 演出 ===================== */
+function toast(main, sub){
+  const box = $('toast');
+  box.innerHTML = `<div class="getwrap"><div class="minilines"></div>
+    <div class="gettag"><div class="m">${main}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div></div>`;
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { box.innerHTML = ''; }, 1200);
+}
+// 達成以外のフィードバックはこちら（控えめ）
+function note(text){
+  const box = $('note');
+  box.innerHTML = `<div class="notebox">${text}</div>`;
+  clearTimeout(note._t);
+  note._t = setTimeout(() => { box.innerHTML = ''; }, 1950);
+}
+function flash(){
+  const f = $('flash');
+  f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
+}
+function celebrate(title, rank, text, sub, intense){
+  const ov = $('ov-celebrate'), box = $('celebrate');
+  box.innerHTML = `<div class="lines"></div>${intense ? '<div class="rays"></div><div class="halo"></div>' : ''}
+    <div class="ttl"><span>${title}</span></div>
+    <div class="pop">${rank ? badgeHTML(rank, text, true) : ''}</div>
+    ${sub ? `<div class="sub">${sub}</div>` : ''}`;
+  const num = intense ? 46 : 18;
+  for (let i = 0; i < num; i++){
+    const s = document.createElement('div');
+    s.className = 'spark';
+    const a = Math.random() * Math.PI * 2, r = 60 + Math.random() * (intense ? 230 : 140);
+    s.style.setProperty('--dx', Math.cos(a) * r + 'px');
+    s.style.setProperty('--dy', Math.sin(a) * r + 'px');
+    s.style.left = '50%'; s.style.top = '45%';
+    s.style.background = intense && i % 2 ? '#9bffc6' : '#fff';
+    s.style.animationDelay = (.18 + Math.random() * (intense ? .5 : .2)) + 's';
+    box.appendChild(s);
+  }
+  ov.classList.add('on');
+  clearTimeout(celebrate._t);
+  celebrate._t = setTimeout(() => ov.classList.remove('on'), intense ? 2800 : 1900);
+  ov.onclick = () => ov.classList.remove('on');
+}
+
+/* ===================== アラーム / 記録 ===================== */
+function renderAlarm(){
+  const st = S.settings, on = st.alarmOn;
+  $('bed-plan').value  = st.bedPlan;
+  $('wake-plan').value = st.wakePlan;
+  $('qr-text').value   = st.qrText;
+  $('alarm-state').textContent  = on ? 'ON' : 'OFF';
+  $('toggle-alarm').textContent = on ? 'OFFにする' : 'ONにする';
+  $('toggle-alarm').className   = 'btn' + (on ? '' : ' primary');
+  $('alarm-next').textContent   = on && AL.target
+    ? `${md(new Date(AL.target))} ${hm(new Date(AL.target))} に鳴ります` : '鳴りません';
+  $('qr-state').textContent     = st.qrMode ? 'QRコードを読み取って停止' : 'ボタンで停止';
+  $('qr-box').style.display     = st.qrMode ? 'block' : 'none';
+  $('qr-reg-state').textContent = st.qrData ? '登録済み：' + st.qrData.slice(0,18) : 'QR未登録';
+  $('keep-state').textContent   = st.keepScreen ? '画面を点けたままにする（推奨）' : '画面は自動で消える';
+  document.querySelectorAll('#sound-seg button').forEach(b =>
+    b.classList.toggle('on', b.dataset.snd === st.sound));
+  renderCountdown();
+  renderWarn();
+
+  const key = nightKey(), rec = day(key, true);
+  const r = sleepRank(key);
+  const t = iso => iso ? hm(new Date(iso)) : '<span class="muted">未記録</span>';
+  $('rec-status').innerHTML = `
+    <div class="kv"><span>就寝</span><span>${t(rec.bedAt)}</span></div>
+    <div class="kv"><span>起床</span><span>${t(rec.wakeAt)}</span></div>
+    <div class="center" style="margin-top:12px">${r
+      ? badgeHTML(r, RANK_LABEL[r], true)
+      : '<span class="muted">就寝・起床がそろうとバッジを獲得</span>'}</div>`;
+}
+function renderCountdown(){
+  const el = $('countdown');
+  if (!S.settings.alarmOn || !AL.target || AL.ringing){ el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  const s = Math.max(0, Math.round((AL.target - Date.now()) / 1000));
+  el.innerHTML = `起床まで <b>${Math.floor(s/3600)}</b> 時間 <b>${Math.floor(s%3600/60)}</b> 分 <b>${s%60}</b> 秒`;
+}
+function renderWarn(){
+  const st = S.settings, w = [];
+  if (st.alarmOn && !AL.armed) w.push('⚠ 画面を一度タップすると音が有効になります');
+  if (st.alarmOn){
+    w.push('・iOSでは<b>画面を消す・他アプリに切り替える</b>と鳴りません。このアプリを前面に出したままにしてください');
+    w.push(st.keepScreen
+      ? '・画面が点いたままになります。<b>充電しながら</b>お使いください'
+      : '・「画面を点けたまま」をONにすることを強く推奨します');
+  }
+  $('alarm-warn').innerHTML = w.map(x => `<div>${x}</div>`).join('');
+}
+
+$('bed-plan').onchange  = e => { S.settings.bedPlan  = e.target.value; save(); renderAll(); };
+$('wake-plan').onchange = e => {
+  S.settings.wakePlan = e.target.value; save();
+  if (S.settings.alarmOn){ AL.target = nextWakeTime(); schedule(); }
+  renderAll();
+};
+$('qr-text').onchange   = e => { S.settings.qrText = e.target.value.trim() || 'あさ'; save(); renderAll(); };
+$('toggle-alarm').onclick = () => setAlarm(!S.settings.alarmOn);
+$('toggle-qr').onclick    = () => { S.settings.qrMode = !S.settings.qrMode; save(); renderAlarm(); };
+$('toggle-keep').onclick  = () => {
+  S.settings.keepScreen = !S.settings.keepScreen; save();
+  if (S.settings.keepScreen && S.settings.alarmOn) requestWakeLock(); else releaseWakeLock();
+  renderAlarm();
+};
+document.querySelectorAll('#sound-seg button').forEach(b => b.onclick = async () => {
+  S.settings.sound = b.dataset.snd; save();
+  await armAudio();
+  try{                                    // 1.2秒だけ試聴
+    const g = AL.master.gain, t = AL.ctx.currentTime;
+    g.cancelScheduledValues(t); g.setValueAtTime(.5, t); g.setValueAtTime(0, t + 1.2);
+  }catch(e){}
+  setTimeout(() => { if (S.settings.alarmOn) schedule(); }, 1300);
+  renderAlarm();
+});
+
+function record(kind){
+  const key = nightKey(), rec = day(key, true);
+  rec.bedPlan  = rec.bedPlan  || S.settings.bedPlan;
+  rec.wakePlan = rec.wakePlan || S.settings.wakePlan;
+  const field = kind === 'bed' ? 'bedAt' : 'wakeAt';
+  if (rec[field] && !confirm('すでに記録があります。上書きしますか？')) return;
+  rec[field] = new Date().toISOString();
+  save(); renderAll();
+
+  const r = sleepRank(key);
+  if (r){                                   // セット完成 → バッジ獲得
+    flash(); fanfare();
+    celebrate(kind === 'bed' ? 'おやすみなさい' : 'おはようございます', r,
+      RANK_LABEL[r], '就寝・起床セット達成', true);
+  } else {
+    tone(740, .18, 'triangle', .12);
+    note(kind === 'bed'
+      ? `就寝 <b>${hm(new Date(rec.bedAt))}</b> を記録　起床の記録でバッジ獲得`
+      : `起床 <b>${hm(new Date(rec.wakeAt))}</b> を記録　就寝の記録でバッジ獲得`);
+  }
+}
+$('rec-bed').onclick  = () => record('bed');
+$('rec-wake').onclick = () => record('wake');
+
+/* ===================== アラームエンジン =====================
+   鳴動の確実性のため、鳴る瞬間を JS タイマーではなく
+   AudioContext の GainNode に「予約」する（オーディオスレッド側で発火するため、
+   タブがバックグラウンドでタイマーが絞られても鳴る）。
+   さらに無音ループ音声を流し続けてオーディオセッションを保持し、
+   画面ロック中に音声が止められるのを防ぐ。                              */
+const AL = {ctx:null, master:null, nodes:[], keeper:null, target:null,
+            wl:null, ringing:false, vib:null, armed:false};
+
+/* ---- WAV を実行時生成（音源ファイル不要） ---- */
+function makeWav(samples, rate){
+  const n = samples.length, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o,s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0,'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8,'WAVEfmt ');
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,rate,true); v.setUint32(28,rate * 2,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+  w(36,'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++){
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  const b = new Uint8Array(buf);
+  let str = '';
+  for (let i = 0; i < b.length; i += 0x8000) str += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
+  return 'data:audio/wav;base64,' + btoa(str);
+}
+function silentWavURL(){ return makeWav(new Float32Array(8000), 8000); }   // 1秒の無音
+
+const wavCache = {};
+function alarmWavURL(kind){                 // 2〜4秒のループ素材（継ぎ目が出ないよう整数周期）
+  if (wavCache[kind]) return wavCache[kind];
+  const rate = 11025, sec = kind === 'soft' ? 4 : 2, n = rate * sec;
+  const a = new Float32Array(n);
+  let ph = 0;
+  for (let i = 0; i < n; i++){
+    const t = i / rate;
+    if (kind === 'siren'){
+      ph += 2 * Math.PI * (680 + 280 * Math.sin(2 * Math.PI * .5 * t)) / rate;
+      a[i] = Math.sin(ph) * .8;
+    } else if (kind === 'soft'){
+      const env = .5 + .45 * Math.sin(2 * Math.PI * t - Math.PI / 2);
+      a[i] = (Math.sin(2*Math.PI*520*t) + Math.sin(2*Math.PI*660*t) + Math.sin(2*Math.PI*780*t)) / 3 * env * .8;
+    } else {
+      a[i] = (Math.floor(t * 6) % 2) === 0            // 3Hz の断続
+        ? (Math.sin(2*Math.PI*880*t) * .7 + Math.sin(2*Math.PI*1320*t) * .3) * .85 : 0;
+    }
+  }
+  return wavCache[kind] = makeWav(a, rate);
+}
+
+function buildSound(kind){
+  AL.nodes.forEach(n => { try{ n.stop && n.stop(); }catch(e){} try{ n.disconnect(); }catch(e){} });
+  AL.nodes = [];
+  const ctx = AL.ctx, trem = ctx.createGain();
+  trem.connect(AL.master);
+  const osc = (type, f, to) => {
+    const o = ctx.createOscillator(); o.type = type; o.frequency.value = f;
+    o.connect(to || trem); o.start(); AL.nodes.push(o); return o;
+  };
+  const lfo = ctx.createOscillator(), lg = ctx.createGain();
+  if (kind === 'siren'){
+    trem.gain.value = .85;
+    const c = osc('sawtooth', 680);
+    lfo.type = 'sine'; lfo.frequency.value = .55; lg.gain.value = 280;
+    lfo.connect(lg).connect(c.frequency);
+  } else if (kind === 'soft'){
+    trem.gain.value = .5;
+    osc('sine', 523.25); osc('sine', 659.25); osc('sine', 783.99);
+    lfo.type = 'sine'; lfo.frequency.value = .9; lg.gain.value = .42;
+    lfo.connect(lg).connect(trem.gain);
+  } else {
+    trem.gain.value = .5;
+    osc('sine', 880); osc('sine', 1320);
+    lfo.type = 'square'; lfo.frequency.value = 3; lg.gain.value = .5;
+    lfo.connect(lg).connect(trem.gain);
+  }
+  lfo.start();
+  AL.nodes.push(lfo, lg, trem);
+}
+
+async function armAudio(){                 // 必ずユーザー操作の中で呼ぶ
+  if (!AL.ctx){
+    AL.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    AL.master = AL.ctx.createGain();
+    AL.master.gain.value = 0;
+    AL.master.connect(AL.ctx.destination);
+  }
+  try{ await AL.ctx.resume(); }catch(e){}
+  buildSound(S.settings.sound);
+  AL.silentURL = AL.silentURL || silentWavURL();
+  if (!AL.keeper){
+    AL.keeper = new Audio(AL.silentURL);
+    AL.keeper.playsInline = true; AL.keeper.preload = 'auto';
+    AL.keeper.addEventListener('ended', keeperTick);   // 1秒ごとの見張り（タイマーより止まりにくい）
+  }
+  if (!AL.fileRinging){ AL.keeper.loop = false; AL.keeper.src = AL.silentURL; }
+  alarmWavURL(S.settings.sound);                       // 鳴動用WAVを事前生成
+  try{ await AL.keeper.play(); }catch(e){}
+  try{
+    if ('mediaSession' in navigator && window.MediaMetadata)
+      navigator.mediaSession.metadata = new MediaMetadata({title:'目覚まし待機中', artist:'ホログラム目覚まし'});
+  }catch(e){}
+  AL.armed = true;
+}
+function muteNow(){
+  if (!AL.ctx) return;
+  const g = AL.master.gain, t = AL.ctx.currentTime;
+  g.cancelScheduledValues(t); g.setValueAtTime(0, t);
+}
+/* 無音ループが1周するたびに呼ばれる。setInterval が絞られる状況でも
+   メディア再生中のイベントは比較的動くため、鳴動漏れの保険になる。 */
+function keeperTick(){
+  if (!AL.keeper) return;
+  if (S.settings.alarmOn && AL.target && !AL.fileRinging && Date.now() >= AL.target - 150){
+    playAlarmFile(); fire(); return;
+  }
+  if (AL.fileRinging) return;
+  if (!S.settings.alarmOn) return;
+  try{ AL.keeper.currentTime = 0; const p = AL.keeper.play(); p && p.catch && p.catch(()=>{}); }catch(e){}
+}
+/* HTMLAudio 経路での鳴動。WebAudio と違いマナーモード・バックグラウンドに強い。 */
+function playAlarmFile(){
+  if (!AL.keeper || AL.fileRinging) return;
+  AL.fileRinging = true;
+  try{
+    AL.keeper.loop = true;
+    AL.keeper.src = alarmWavURL(S.settings.sound);
+    const p = AL.keeper.play(); p && p.catch && p.catch(()=>{});
+  }catch(e){}
+}
+function restoreKeeper(){
+  AL.fileRinging = false;
+  if (!AL.keeper) return;
+  try{
+    AL.keeper.loop = false;
+    AL.keeper.src = AL.silentURL;
+    if (S.settings.alarmOn){ const p = AL.keeper.play(); p && p.catch && p.catch(()=>{}); }
+    else AL.keeper.pause();
+  }catch(e){}
+}
+function nextWakeTime(){
+  const [h,m] = S.settings.wakePlan.split(':').map(Number);
+  const t = new Date(); t.setHours(h, m, 0, 0);
+  if (t.getTime() <= Date.now()) t.setDate(t.getDate() + 1);
+  return t.getTime();
+}
+function schedule(){                        // 鳴る瞬間を音声側に予約
+  if (!AL.ctx || !AL.target) return;
+  const g = AL.master.gain, now = AL.ctx.currentTime;
+  const secs = (AL.target - Date.now()) / 1000;
+  g.cancelScheduledValues(now); g.setValueAtTime(0, now);
+  if (secs <= 0){ fire(); return; }
+  g.setValueAtTime(0, now + secs - .001);
+  g.setValueAtTime(.28, now + secs);                      // 小さく鳴り始め
+  g.linearRampToValueAtTime(1, now + secs + 25);          // 25秒かけて最大音量へ
+}
+async function setAlarm(on){
+  S.settings.alarmOn = on; save();
+  if (on){
+    await armAudio();
+    AL.target = nextWakeTime();
+    schedule();
+    if (S.settings.keepScreen) requestWakeLock();
+    askNotify();
+  } else {
+    AL.target = null; muteNow(); restoreKeeper();
+    try{ AL.ctx && AL.ctx.suspend(); }catch(e){}
+    AL.armed = false;
+    releaseWakeLock();
+  }
+  renderAlarm();
+}
+
+/* ---- 画面を点けたまま ---- */
+async function requestWakeLock(){
+  try{ if ('wakeLock' in navigator && !AL.wl) AL.wl = await navigator.wakeLock.request('screen'); }catch(e){}
+}
+function releaseWakeLock(){ try{ AL.wl && AL.wl.release(); }catch(e){} AL.wl = null; }
+
+/* ---- 通知・バイブ ---- */
+function askNotify(){
+  try{
+    if (window.Notification && Notification.permission === 'default'){
+      const p = Notification.requestPermission();
+      if (p && p.catch) p.catch(() => {});
+    }
+  }catch(e){}
+}
+function notify(){
+  try{
+    if (window.Notification && Notification.permission === 'granted')
+      new Notification('⏰ 起床時刻です', {body:'アプリを開いて停止してください', tag:'alarm'});
+  }catch(e){}
+}
+function vibrateStart(){
+  if (!navigator.vibrate) return;
+  const p = () => { try{ navigator.vibrate([600,300,600,300,600,900]); }catch(e){} };
+  p(); AL.vib = setInterval(p, 3300);
+}
+function vibrateStop(){ clearInterval(AL.vib); AL.vib = null; try{ navigator.vibrate(0); }catch(e){} }
+
+/* ---- 鳴動 / 停止 ---- */
+function fire(){
+  if (AL.ringing) return;
+  AL.ringing = true;
+  playAlarmFile();                           // ファイル再生（マナーモード・バックグラウンド対策）
+  try{ AL.ctx && AL.ctx.resume(); }catch(e){}
+  try{                                       // 予約が遅れていた場合の保険（鳴っている音量は下げない）
+    const g = AL.master.gain, t = AL.ctx.currentTime, cur = Math.max(.4, g.value);
+    g.cancelScheduledValues(t); g.setValueAtTime(cur, t); g.linearRampToValueAtTime(1, t + 15);
+  }catch(e){}
+  vibrateStart(); notify();
+  $('ring-time').textContent = hm(new Date());
+  $('ring-body').innerHTML = S.settings.qrMode
+    ? `<button class="btn big primary" id="qr-stop">QRを読み取って停止</button>
+       <div class="row" style="margin-top:12px">
+         <input type="text" id="unlock" class="grow" placeholder="予備キーワード">
+         <button class="btn" id="unlock-btn">解除</button>
+       </div>`
+    : `<button class="btn big primary" id="stop-btn">停止する</button>`;
+  $('ring').classList.add('on');
+  if (S.settings.qrMode){
+    $('qr-stop').onclick = scanToStop;
+    $('unlock-btn').onclick = () => {
+      if ($('unlock').value.trim() === S.settings.qrText) stopAlarm();
+      else { $('unlock').value = ''; $('unlock').placeholder = '違います'; }
+    };
+    scanToStop();                            // 最初から読み取りを開始
+  } else $('stop-btn').onclick = stopAlarm;
+  renderAlarm();
+}
+function stopAlarm(){
+  AL.ringing = false;
+  vibrateStop(); muteNow(); restoreKeeper(); closeCam();
+  $('ring').classList.remove('on');
+  if (S.settings.alarmOn){ AL.target = nextWakeTime(); schedule(); }  // 翌日を再予約
+  renderAlarm();
+}
+$('test-alarm').onclick = async () => { await armAudio(); fire(); };
+$('test-30').onclick = async () => {
+  await armAudio();
+  AL.target = Date.now() + 30000; schedule(); renderAlarm();
+  note('30秒後に鳴ります');
+};
+
+/* ---- 見張り（タイマーが絞られても復帰時に検知） ---- */
+setInterval(() => {
+  if (S.settings.alarmOn && AL.target && !AL.ringing && Date.now() >= AL.target) fire();
+  if (document.getElementById('v-alarm').classList.contains('on')) renderCountdown();
+}, 1000);
+document.addEventListener('visibilitychange', async () => {
+  if (document.hidden) return;
+  if (AL.ctx && AL.ctx.state === 'suspended' && S.settings.alarmOn){ try{ await AL.ctx.resume(); }catch(e){} }
+  if (S.settings.alarmOn && AL.target){
+    if (Date.now() >= AL.target) fire();
+    else if (!AL.ringing) schedule();        // suspend で currentTime がずれるため再予約
+    if (S.settings.keepScreen) requestWakeLock();
+  }
+});
+
+/* ===================== QRコード ===================== */
+let camStream = null, camRAF = null, jsqrP = null;
+function loadJsQR(){
+  if (!jsqrP) jsqrP = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    s.onload = res; s.onerror = rej; document.head.appendChild(s);
+  });
+  return jsqrP;
+}
+async function openCam(title, onFound){
+  $('cam-title').textContent = title;
+  $('cam-msg').textContent = 'カメラを起動中…';
+  $('cam').classList.add('on');
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+  }catch(e){
+    $('cam-msg').textContent = 'カメラを使えませんでした（' + ((e && e.name) || 'error') +
+      '）。claude.ai 内の表示では利用できません。当面は予備キーワードで解除してください。';
+    return;
+  }
+  const v = $('cam-video');
+  v.srcObject = camStream;
+  try{ await v.play(); }catch(e){}
+  $('cam-msg').textContent = 'QRコードを枠に合わせてください';
+  let det = null;
+  if ('BarcodeDetector' in window){
+    try{ det = new window.BarcodeDetector({formats:['qr_code']}); }catch(e){}
+  }
+  if (!det){
+    try{ await loadJsQR(); }
+    catch(e){ $('cam-msg').textContent = 'QR解析の読み込みに失敗しました（通信を確認してください）'; return; }
+  }
+  const cv = document.createElement('canvas');
+  const cx = cv.getContext('2d', {willReadFrequently:true});
+  const tick = async () => {
+    if (!camStream) return;
+    if (v.readyState >= 2 && v.videoWidth){
+      cv.width = v.videoWidth; cv.height = v.videoHeight;
+      cx.drawImage(v, 0, 0);
+      let text = null;
+      try{
+        if (det){ const r = await det.detect(cv); if (r.length) text = r[0].rawValue; }
+        else if (window.jsQR){
+          const d = cx.getImageData(0, 0, cv.width, cv.height);
+          const r = window.jsQR(d.data, d.width, d.height);
+          if (r) text = r.data;
+        }
+      }catch(e){}
+      if (text && onFound(text) === true) return;
+    }
+    camRAF = requestAnimationFrame(tick);
+  };
+  tick();
+}
+function closeCam(){
+  if (camRAF){ cancelAnimationFrame(camRAF); camRAF = null; }
+  if (camStream){ camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  $('cam').classList.remove('on');
+}
+$('cam-close').onclick = closeCam;
+$('qr-register').onclick = () => openCam('停止用QRを登録', text => {
+  S.settings.qrData = text; save(); closeCam(); renderAlarm();
+  note('QRコードを登録しました');
+  return true;
+});
+function scanToStop(){
+  openCam('QRを読み取って停止', text => {
+    if (!S.settings.qrData || text === S.settings.qrData){ closeCam(); stopAlarm(); return true; }
+    $('cam-msg').textContent = '登録したQRと違います';
+    return false;
+  });
+}
+
+/* ---- 復帰時：保存済みONの再開（音声は要タップ） ---- */
+if (S.settings.alarmOn){
+  AL.target = nextWakeTime();
+  const kick = async () => {
+    document.removeEventListener('pointerdown', kick);
+    await armAudio(); schedule();
+    if (S.settings.keepScreen) requestWakeLock();
+    renderAlarm();
+  };
+  document.addEventListener('pointerdown', kick);
+}
+
+/* ===================== カレンダー ===================== */
+let calMode = 'two';
+let anchor  = weekStart(new Date());        // 2週間表示：下段の週の日曜
+let viewM   = new Date(); viewM.setDate(1);
+
+document.querySelectorAll('#cal-seg button').forEach(b => {
+  b.onclick = () => {
+    calMode = b.dataset.cal;
+    document.querySelectorAll('#cal-seg button').forEach(x => x.classList.toggle('on', x === b));
+    renderCalendar();
+  };
+});
+$('cal-prev').onclick = () => {
+  if (calMode === 'two') anchor = addDays(anchor, -14); else viewM.setMonth(viewM.getMonth() - 1);
+  renderCalendar();
+};
+$('cal-next').onclick = () => {
+  if (calMode === 'two') anchor = addDays(anchor, 14); else viewM.setMonth(viewM.getMonth() + 1);
+  renderCalendar();
+};
+
+const WD = ['日','月','火','水','木','金','土'];
+const chipBG = rk => ({
+  holo:'linear-gradient(115deg,#ff9ad5,#9ad7ff,#9bffc6,#fff59a)',
+  gold:'linear-gradient(135deg,#ffe9a8,#d99b1c)',
+  silver:'linear-gradient(135deg,#f2f5ff,#94a0bb)',
+  bronze:'linear-gradient(135deg,#f0c49a,#a2622a)'
+}[rk] || 'transparent');
+
+function cellHTML(key, label, inMonth = true){
+  const rec = S.days[key];
+  const s = sleepRank(key), r = routineRank(rec);
+  const has = !!rec && (rec.bedAt || rec.wakeAt || (rec.routine || []).length);
+  return `<div class="cell${has ? ' has' : ''}${key === ymd(new Date()) ? ' today' : ''}"
+    data-key="${key}" style="${inMonth ? '' : 'opacity:.35'}">
+    <div class="d">${label}</div>
+    <div class="chips">
+      <div class="chip s ${s && s !== 'none' ? '' : 'off'}" style="background:${chipBG(s)}"></div>
+      <div class="chip r ${r ? '' : 'off'}" style="background:${chipBG(r)}"></div>
+    </div></div>`;
+}
+function weekHead(ws){
+  const keys = weekKeys(ws);
+  const n = keys.filter(achieved).length;
+  const rn = keys.filter(k => routineRank(S.days[k])).length;
+  const wr = weekRank(n);
+  return `<div class="whead">
+    <span class="wr">${md(ws)} – ${md(addDays(ws,6))}<br>ルーティン ${rn}/7</span>
+    <span class="ws">睡眠 ${n}/7</span>${badgeHTML(wr)}</div>`;
+}
+function weekBlock(ws){
+  return `<div class="week">${weekHead(ws)}
+    <div class="grid">${WD.map(w => `<div class="wd">${w}</div>`).join('')}</div>
+    <div class="grid">${weekKeys(ws).map(k => cellHTML(k, parseKey(k).getDate())).join('')}</div>
+  </div>`;
+}
+function renderCalendar(){
+  if (calMode === 'two'){
+    const w0 = addDays(anchor, -7);
+    $('cal-label').textContent = `${md(w0)} – ${md(addDays(anchor,6))}`;
+    $('cal-body').innerHTML = weekBlock(w0) + weekBlock(anchor);
+  } else {
+    const y = viewM.getFullYear(), m = viewM.getMonth();
+    $('cal-label').textContent = `${y}年 ${m + 1}月`;
+    const first = new Date(y, m, 1), last = new Date(y, m + 1, 0).getDate();
+    let cells = '';
+    for (let i = 0; i < first.getDay(); i++) cells += '<div class="cell empty"></div>';
+    for (let d = 1; d <= last; d++) cells += cellHTML(`${y}-${pad(m+1)}-${pad(d)}`, d);
+    let weeks = '';
+    for (let ws = weekStart(first); ws <= new Date(y, m, last); ws = addDays(ws, 7))
+      weeks += `<div style="margin-top:10px">${weekHead(ws)}</div>`;
+    $('cal-body').innerHTML =
+      `<div class="grid">${WD.map(w => `<div class="wd">${w}</div>`).join('')}</div>
+       <div class="grid" style="margin-top:4px">${cells}</div>
+       <h2 style="margin:18px 0 0">週ごとの達成率</h2>${weeks}`;
+  }
+  $('cal-body').querySelectorAll('[data-key]').forEach(c => {
+    c.onclick = () => showDetail(c.dataset.key);
+  });
+  renderStats();
+}
+function renderStats(){
+  const c = {holo:0, gold:0, silver:0, bronze:0};
+  const bump = r => { if (r && c[r] !== undefined) c[r]++; };
+  Object.keys(S.days).forEach(k => { bump(sleepRank(k)); bump(routineRank(S.days[k])); });
+  const seen = new Set();
+  Object.keys(S.days).forEach(k => {
+    const ws = ymd(weekStart(parseKey(k)));
+    if (seen.has(ws)) return; seen.add(ws);
+    bump(weekRank(weekKeys(parseKey(ws)).filter(achieved).length));
+  });
+  $('stats').innerHTML = ORDER.slice(0,4).map(r =>
+    `<div class="kv"><span>${RANK_LABEL[r]}</span><span>${badgeHTML(r)} &nbsp;${c[r]} 個</span></div>`).join('');
+}
+
+/* ---- 日別詳細 ---- */
+function showDetail(key){
+  const rec = S.days[key] || {};
+  const bedPlan  = rec.bedPlan  || S.settings.bedPlan;
+  const wakePlan = rec.wakePlan || S.settings.wakePlan;
+  const r = sleepRank(key), rR = routineRank(rec);
+  const dm = (p,a,k) => { const v = diffMin(key,p,a,k); return v === null ? '' :
+    `<span class="muted">（${v > 0 ? '+' : ''}${v}分）</span>`; };
+
+  $('detail').innerHTML = `
+    <h3>${key} の夜</h3>
+    <div class="center" style="margin:4px 0 14px">${r
+      ? badgeHTML(r, RANK_LABEL[r], true)
+      : '<span class="muted">就寝・起床がそろうとバッジ獲得</span>'}</div>
+    <div class="kv"><span>就寝予定</span><span>${bedPlan}</span></div>
+    <div class="kv"><span>実際の就寝</span><span>${dm(bedPlan, rec.bedAt, 'bed')}
+      <input type="time" id="e-bed" value="${rec.bedAt ? hm(new Date(rec.bedAt)) : ''}" style="width:110px"></span></div>
+    <div class="kv"><span>起床予定</span><span>${wakePlan}</span></div>
+    <div class="kv"><span>実際の起床</span><span>${dm(wakePlan, rec.wakeAt, 'wake')}
+      <input type="time" id="e-wake" value="${rec.wakeAt ? hm(new Date(rec.wakeAt)) : ''}" style="width:110px"></span></div>
+    <div class="kv"><span>ルーティン</span><span>${rR ? badgeHTML('holo','達成') :
+      `<span class="muted">${(rec.routine || []).length} / ${S.tasks.length}</span>`}</span></div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn grow" id="d-close">閉じる</button>
+      <button class="btn primary grow" id="d-save">保存</button>
+    </div>`;
+  $('ov-detail').classList.add('on');
+  $('d-close').onclick = () => $('ov-detail').classList.remove('on');
+  $('d-save').onclick = () => {
+    const rr = day(key, true);
+    rr.bedPlan = bedPlan; rr.wakePlan = wakePlan;
+    const b = $('e-bed').value, w = $('e-wake').value;
+    rr.bedAt  = b ? instantFor(key, b, 'bed').toISOString()  : undefined;
+    rr.wakeAt = w ? instantFor(key, w, 'wake').toISOString() : undefined;
+    save(); $('ov-detail').classList.remove('on'); renderAll();
+  };
+}
+
+/* ===================== 初期化 ===================== */
+function renderAll(){ renderRoutine(); renderAlarm(); renderCalendar(); }
+renderAll();
+
+// PWA（ホーム画面に追加して全画面起動・オフライン動作）
+if ('serviceWorker' in navigator && location.protocol === 'https:')
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+</script>
+</body>
+</html>
