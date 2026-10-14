@@ -358,7 +358,8 @@ input[type=text],input[type=time]{
         <div class="row" id="custom-row" style="margin-top:8px">
           <div class="grow muted" id="custom-name"></div>
           <label class="btn sm" for="snd-file">音源を選ぶ</label>
-          <input type="file" id="snd-file" accept="audio/*" style="display:none">
+          <input type="file" id="snd-file" style="display:none"
+                 accept="audio/*,.m4a,.mp3,.aac,.wav,.caf,.aiff,.aif,.mp4">
           <button class="btn sm ghost" id="snd-clear">削除</button>
         </div>
       </div>
@@ -791,7 +792,7 @@ async function previewSound(){
       await AL.prev.play();
       clearTimeout(previewSound._t);
       previewSound._t = setTimeout(() => { try{ AL.prev.pause(); }catch(e){} }, 3000);
-    }catch(e){ note('この形式は再生できませんでした'); }
+    }catch(e){ note('この形式は再生できません（保護された曲は使えません）'); }
     return;
   }
   try{                                                     // 1.2秒だけ試聴
