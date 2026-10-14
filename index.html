@@ -280,6 +280,9 @@ input[type=text],input[type=time]{
 .warn{margin-top:12px;font-size:11px;line-height:1.7;color:#a9b6dd}
 .warn div{padding-left:2px}
 .warn b{color:#ffd978;font-weight:700}
+.diag{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
+  font-size:10px;line-height:1.6;color:#7d8ab5;letter-spacing:.02em}
+.diag b{color:#a8e4ff;font-weight:700}
 .camwrap{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:1/1}
 .camwrap video{width:100%;height:100%;object-fit:cover;display:block}
 .camframe{position:absolute;inset:16%;border:2px solid rgba(168,228,255,.9);border-radius:10px;
@@ -387,6 +390,7 @@ input[type=text],input[type=time]{
         <button class="btn ghost sm grow" id="test-30">30秒後にテスト</button>
       </div>
       <div class="warn" id="alarm-warn"></div>
+      <div class="diag" id="alarm-diag"></div>
     </div>
 
     <div class="card">
@@ -727,6 +731,18 @@ function renderWarn(){
       : '・「画面を点けたまま」をONにすることを強く推奨します');
   }
   $('alarm-warn').innerHTML = w.map(x => `<div>${x}</div>`).join('');
+  renderDiag();
+}
+/* 画面OFF／バックグラウンド中にJSがどこまで動いていたかを確認するための表示。
+   見張りは1秒ごとに記録を残すので、「最後の見張り」が止まった時刻＝JSが凍結した時刻。 */
+function renderDiag(){
+  let d = null;
+  try{ d = JSON.parse(localStorage.getItem('mezamashi.diag') || 'null'); }catch(e){}
+  const el = $('alarm-diag');
+  if (!d){ el.innerHTML = ''; return; }
+  const t = new Date(d.t), ago = Math.max(0, Math.round((Date.now() - d.t) / 1000));
+  el.innerHTML = `<div>診断：最後の見張り <b>${hm(t)}:${pad(t.getSeconds())}</b>（${ago}秒前）`
+    + ` ／ 音声 <b>${d.ctx}</b> ／ 無音再生 <b>${d.paused ? '停止' : '継続'}</b></div>`;
 }
 
 $('bed-plan').onchange  = e => { S.settings.bedPlan  = e.target.value; save(); renderAll(); };
@@ -871,9 +887,12 @@ async function armAudio(){                 // 必ずユーザー操作の中で�
   if (!AL.keeper){
     AL.keeper = new Audio(AL.silentURL);
     AL.keeper.playsInline = true; AL.keeper.preload = 'auto';
-    AL.keeper.addEventListener('ended', keeperTick);   // 1秒ごとの見張り（タイマーより止まりにくい）
+    // loop=true なので再生の継続自体は JS に依存しない。
+    // timeupdate は再生中に毎秒数回届くので、見張りとしてのみ使う。
+    AL.keeper.addEventListener('timeupdate', keeperTick);
+    AL.keeper.addEventListener('ended', keeperTick);
   }
-  if (!AL.fileRinging){ AL.keeper.loop = false; AL.keeper.src = AL.silentURL; }
+  if (!AL.fileRinging){ AL.keeper.loop = true; AL.keeper.src = AL.silentURL; }
   alarmWavURL(S.settings.sound);                       // 鳴動用WAVを事前生成
   try{ await AL.keeper.play(); }catch(e){}
   try{
@@ -891,12 +910,19 @@ function muteNow(){
    メディア再生中のイベントは比較的動くため、鳴動漏れの保険になる。 */
 function keeperTick(){
   if (!AL.keeper) return;
-  if (S.settings.alarmOn && AL.target && !AL.fileRinging && Date.now() >= AL.target - 150){
-    playAlarmFile(); fire(); return;
+  const now = Date.now();
+  if (now - (AL.lastTick || 0) < 900) return;        // 毎秒1回に間引く
+  AL.lastTick = now;
+  // 診断：画面OFF後にJSがどこまで動いていたかを後から確認するため記録する
+  try{
+    localStorage.setItem('mezamashi.diag', JSON.stringify({
+      t: now, ctx: AL.ctx ? AL.ctx.state : '-',
+      paused: AL.keeper.paused, hidden: document.hidden
+    }));
+  }catch(e){}
+  if (S.settings.alarmOn && AL.target && !AL.fileRinging && now >= AL.target - 150){
+    playAlarmFile(); fire();
   }
-  if (AL.fileRinging) return;
-  if (!S.settings.alarmOn) return;
-  try{ AL.keeper.currentTime = 0; const p = AL.keeper.play(); p && p.catch && p.catch(()=>{}); }catch(e){}
 }
 /* HTMLAudio 経路での鳴動。WebAudio と違いマナーモード・バックグラウンドに強い。 */
 function playAlarmFile(){
@@ -912,7 +938,7 @@ function restoreKeeper(){
   AL.fileRinging = false;
   if (!AL.keeper) return;
   try{
-    AL.keeper.loop = false;
+    AL.keeper.loop = true;
     AL.keeper.src = AL.silentURL;
     if (S.settings.alarmOn){ const p = AL.keeper.play(); p && p.catch && p.catch(()=>{}); }
     else AL.keeper.pause();
@@ -1026,7 +1052,7 @@ $('test-30').onclick = async () => {
 /* ---- 見張り（タイマーが絞られても復帰時に検知） ---- */
 setInterval(() => {
   if (S.settings.alarmOn && AL.target && !AL.ringing && Date.now() >= AL.target) fire();
-  if (document.getElementById('v-alarm').classList.contains('on')) renderCountdown();
+  if (document.getElementById('v-alarm').classList.contains('on')){ renderCountdown(); renderDiag(); }
 }, 1000);
 document.addEventListener('visibilitychange', async () => {
   if (document.hidden) return;
