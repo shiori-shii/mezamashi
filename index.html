@@ -347,12 +347,19 @@ input[type=text],input[type=time]{
       </div>
       <div class="cd" id="countdown"></div>
 
-      <div class="row" style="align-items:flex-start">
-        <div class="grow muted" style="padding-top:7px">アラーム音</div>
-        <div class="seg" id="sound-seg" style="margin:0;flex:0 0 auto;width:210px">
+      <div style="margin-top:10px">
+        <div class="muted" style="margin-bottom:7px">アラーム音</div>
+        <div class="seg" id="sound-seg" style="margin:0">
           <button data-snd="beep">ビープ</button>
           <button data-snd="siren">サイレン</button>
           <button data-snd="soft">やわらか</button>
+          <button data-snd="custom">マイ音源</button>
+        </div>
+        <div class="row" id="custom-row" style="margin-top:8px">
+          <div class="grow muted" id="custom-name"></div>
+          <label class="btn sm" for="snd-file">音源を選ぶ</label>
+          <input type="file" id="snd-file" accept="audio/*" style="display:none">
+          <button class="btn sm ghost" id="snd-clear">削除</button>
         </div>
       </div>
 
@@ -372,6 +379,9 @@ input[type=text],input[type=time]{
           <div class="grow muted">予備の解除キーワード</div>
           <input type="text" id="qr-text" style="width:120px">
         </div>
+        <p class="muted" style="margin:8px 0 0;font-size:11px;line-height:1.6">
+          カメラの許可を毎回聞かれる場合は、iPhoneの「設定」→「アプリ」→「目覚まし」→「カメラ」を<b>許可</b>にしてください。
+        </p>
       </div>
 
       <div class="row">
@@ -455,7 +465,7 @@ const DEFAULT_STATE = {
     {id:'t3', title:'着替えを準備する'}
   ],
   settings: {bedPlan:'23:00', wakePlan:'07:00', alarmOn:false, qrMode:false, qrText:'あさ',
-             sound:'beep', qrData:'', keepScreen:false},
+             sound:'beep', qrData:'', keepScreen:false, customName:''},
   days: {}   // "YYYY-MM-DD"(夜) -> {bedPlan, wakePlan, bedAt, wakeAt, routine:[taskId], routineAt}
 };
 let S;
@@ -466,6 +476,27 @@ S.tasks = S.tasks || [];
 S.days  = S.days  || {};
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
 const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---- 音源ファイルの保存（localStorageでは容量が足りないためIndexedDB） ---- */
+function idb(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('mezamashi', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('files');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function idbTx(mode, fn){
+  return idb().then(d => new Promise((res, rej) => {
+    const t = d.transaction('files', mode), q = fn(t.objectStore('files'));
+    t.oncomplete = () => res(q && q.result);
+    t.onerror = () => rej(t.error);
+  }));
+}
+const idbPut = (k, v) => idbTx('readwrite', s => s.put(v, k));
+const idbGet = k      => idbTx('readonly',  s => s.get(k));
+const idbDel = k      => idbTx('readwrite', s => s.delete(k));
 
 /* ===================== 時刻 ===================== */
 const pad = n => String(n).padStart(2,'0');
@@ -697,6 +728,8 @@ function renderAlarm(){
   $('keep-state').textContent   = st.keepScreen ? '画面を点けたままにする' : '画面は自動で消える（推奨）';
   document.querySelectorAll('#sound-seg button').forEach(b =>
     b.classList.toggle('on', b.dataset.snd === st.sound));
+  $('custom-row').style.display = st.sound === 'custom' ? 'flex' : 'none';
+  $('custom-name').textContent  = st.customName || '音源が未設定です';
   renderCountdown();
   renderWarn();
 
@@ -743,15 +776,57 @@ $('toggle-keep').onclick  = () => {
   renderAlarm();
 };
 document.querySelectorAll('#sound-seg button').forEach(b => b.onclick = async () => {
+  if (b.dataset.snd === 'custom' && !S.settings.customName){ $('snd-file').click(); return; }
   S.settings.sound = b.dataset.snd; save();
   await armAudio();
-  try{                                    // 1.2秒だけ試聴
+  renderAlarm();
+  previewSound();
+});
+async function previewSound(){
+  if (S.settings.sound === 'custom' && AL.customURL){      // 3秒だけ試聴
+    try{
+      if (AL.prev) AL.prev.pause();
+      AL.prev = new Audio(AL.customURL);
+      AL.prev.playsInline = true;
+      await AL.prev.play();
+      clearTimeout(previewSound._t);
+      previewSound._t = setTimeout(() => { try{ AL.prev.pause(); }catch(e){} }, 3000);
+    }catch(e){ note('この形式は再生できませんでした'); }
+    return;
+  }
+  try{                                                     // 1.2秒だけ試聴
     const g = AL.master.gain, t = AL.ctx.currentTime;
     g.cancelScheduledValues(t); g.setValueAtTime(.5, t); g.setValueAtTime(0, t + 1.2);
   }catch(e){}
   setTimeout(() => { if (S.settings.alarmOn) schedule(); }, 1300);
+}
+$('snd-file').onchange = async e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  if (f.size > 15 * 1024 * 1024){ note('ファイルが大きすぎます（15MBまで）'); return; }
+  try{
+    await idbPut('alarmAudio', f);
+    clearCustom();
+    S.settings.customName = f.name; S.settings.sound = 'custom'; save();
+    await armAudio();
+    if (S.settings.alarmOn) schedule();
+    renderAlarm();
+    note(`<b>${esc(f.name)}</b> を設定しました`);
+    previewSound();
+  }catch(err){ note('音源を保存できませんでした'); }
+};
+$('snd-clear').onclick = async () => {
+  if (!S.settings.customName) return;
+  if (!confirm(`「${S.settings.customName}」を削除しますか？`)) return;
+  try{ await idbDel('alarmAudio'); }catch(e){}
+  clearCustom();
+  S.settings.customName = ''; S.settings.sound = 'beep'; save();
+  await armAudio();
+  if (S.settings.alarmOn) schedule();
   renderAlarm();
-});
+  note('音源を削除しました');
+};
 
 function record(kind){
   const key = nightKey(), rec = day(key, true);
@@ -830,6 +905,9 @@ function alarmWavURL(kind){                 // 2〜4秒のループ素材（継�
 function buildSound(kind){
   AL.nodes.forEach(n => { try{ n.stop && n.stop(); }catch(e){} try{ n.disconnect(); }catch(e){} });
   AL.nodes = [];
+  // マイ音源を選んでいても WebAudio 側はビープを用意する。これは JS が凍結したときの
+  // 保険で、通常は HTMLAudio 側で音源が鳴り、こちらは fire() で止める。
+  if (kind === 'custom') kind = 'beep';
   const ctx = AL.ctx, trem = ctx.createGain();
   trem.connect(AL.master);
   const osc = (type, f, to) => {
@@ -876,7 +954,8 @@ async function armAudio(){                 // 必ずユーザー操作の中で�
     AL.keeper.addEventListener('ended', keeperTick);
   }
   if (!AL.fileRinging){ AL.keeper.loop = true; AL.keeper.src = AL.silentURL; }
-  alarmWavURL(S.settings.sound);                       // 鳴動用WAVを事前生成
+  if (S.settings.sound === 'custom') await loadCustom();
+  ringSrc();                                           // 鳴動用の音源を事前に用意
   try{ await AL.keeper.play(); }catch(e){}
   try{
     if ('mediaSession' in navigator && window.MediaMetadata)
@@ -900,14 +979,42 @@ function keeperTick(){
     playAlarmFile(); fire();
   }
 }
+/* 保存した音源を読み込む（デコードはせず、再生用のURLだけ作る） */
+async function loadCustom(){
+  if (AL.customURL) return AL.customURL;
+  try{
+    const blob = await idbGet('alarmAudio');
+    if (!blob) return null;
+    AL.customURL = URL.createObjectURL(blob);
+    return AL.customURL;
+  }catch(e){ return null; }
+}
+function clearCustom(){
+  if (AL.customURL){ try{ URL.revokeObjectURL(AL.customURL); }catch(e){} AL.customURL = null; }
+}
+/* 実際に鳴らす音源のURL。マイ音源が未準備ならビープにフォールバックする。 */
+function ringSrc(){
+  if (S.settings.sound === 'custom' && AL.customURL) return AL.customURL;
+  return alarmWavURL(S.settings.sound === 'custom' ? 'beep' : S.settings.sound);
+}
 /* HTMLAudio 経路での鳴動。WebAudio と違いマナーモード・バックグラウンドに強い。 */
 function playAlarmFile(){
   if (!AL.keeper || AL.fileRinging) return;
   AL.fileRinging = true;
   try{
     AL.keeper.loop = true;
-    AL.keeper.src = alarmWavURL(S.settings.sound);
-    const p = AL.keeper.play(); p && p.catch && p.catch(()=>{});
+    AL.keeper.src = ringSrc();
+    const p = AL.keeper.play();
+    if (p && p.then) p.then(() => {
+      // マイ音源が鳴り出したら、保険のビープを下げて二重再生を防ぐ
+      if (S.settings.sound === 'custom' && AL.customURL) fadeOutBackup();
+    }).catch(() => {});
+  }catch(e){}
+}
+function fadeOutBackup(){
+  try{
+    const g = AL.master.gain, t = AL.ctx.currentTime;
+    g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + .3);
   }catch(e){}
 }
 function restoreKeeper(){
@@ -932,9 +1039,12 @@ function schedule(){                        // 鳴る瞬間を音声側に予約
   const secs = (AL.target - Date.now()) / 1000;
   g.cancelScheduledValues(now); g.setValueAtTime(0, now);
   if (secs <= 0){ fire(); return; }
-  g.setValueAtTime(0, now + secs - .001);
-  g.setValueAtTime(.28, now + secs);                      // 小さく鳴り始め
-  g.linearRampToValueAtTime(1, now + secs + 25);          // 25秒かけて最大音量へ
+  // マイ音源のときの WebAudio 側は保険なので2秒遅らせる。
+  // 通常は その前に HTMLAudio 側が鳴り出し、こちらは下げられる。
+  const d = secs + (S.settings.sound === 'custom' ? 2 : 0);
+  g.setValueAtTime(0, now + d - .001);
+  g.setValueAtTime(.28, now + d);                         // 小さく鳴り始め
+  g.linearRampToValueAtTime(1, now + d + 25);             // 25秒かけて最大音量へ
 }
 async function setAlarm(on){
   S.settings.alarmOn = on; save();
@@ -987,7 +1097,9 @@ function fire(){
   AL.ringing = true;
   playAlarmFile();                           // ファイル再生（マナーモード・バックグラウンド対策）
   try{ AL.ctx && AL.ctx.resume(); }catch(e){}
-  try{                                       // 予約が遅れていた場合の保険（鳴っている音量は下げない）
+  // 予約が遅れていた場合の保険（鳴っている音量は下げない）。
+  // マイ音源のときは上のファイル再生が主役なので、ビープは上げない。
+  if (!(S.settings.sound === 'custom' && AL.customURL)) try{
     const g = AL.master.gain, t = AL.ctx.currentTime, cur = Math.max(.4, g.value);
     g.cancelScheduledValues(t); g.setValueAtTime(cur, t); g.linearRampToValueAtTime(1, t + 15);
   }catch(e){}
@@ -1031,7 +1143,7 @@ setInterval(() => {
   if (document.getElementById('v-alarm').classList.contains('on')) renderCountdown();
 }, 1000);
 document.addEventListener('visibilitychange', async () => {
-  if (document.hidden) return;
+  if (document.hidden){ releaseCam(); return; }   // 背面でカメラを掴み続けない
   if (AL.ctx && AL.ctx.state === 'suspended' && S.settings.alarmOn){ try{ await AL.ctx.resume(); }catch(e){} }
   if (S.settings.alarmOn && AL.target){
     if (Date.now() >= AL.target) fire();
@@ -1050,12 +1162,24 @@ function loadJsQR(){
   });
   return jsqrP;
 }
+/* 同一セッション中はストリームを使い回す。stop すると次回また許可を聞かれるため、
+   使い終わっても即座には停止せず、2分使われなければ解放する。 */
+async function getCam(){
+  if (camStream){
+    const tr = camStream.getVideoTracks()[0];
+    if (tr && tr.readyState === 'live') return camStream;
+    camStream = null;
+  }
+  camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+  return camStream;
+}
 async function openCam(title, onFound){
+  clearTimeout(closeCam._t);
   $('cam-title').textContent = title;
   $('cam-msg').textContent = 'カメラを起動中…';
   $('cam').classList.add('on');
   try{
-    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}});
+    camStream = await getCam();
   }catch(e){
     $('cam-msg').textContent = 'カメラを使えませんでした（' + ((e && e.name) || 'error') +
       '）。claude.ai 内の表示では利用できません。当面は予備キーワードで解除してください。';
@@ -1097,7 +1221,15 @@ async function openCam(title, onFound){
 }
 function closeCam(){
   if (camRAF){ cancelAnimationFrame(camRAF); camRAF = null; }
+  $('cam').classList.remove('on');
+  clearTimeout(closeCam._t);
+  closeCam._t = setTimeout(releaseCam, 120000);   // しばらく使わなければ解放
+}
+function releaseCam(){
+  clearTimeout(closeCam._t);
+  if (camRAF){ cancelAnimationFrame(camRAF); camRAF = null; }
   if (camStream){ camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  try{ $('cam-video').srcObject = null; }catch(e){}
   $('cam').classList.remove('on');
 }
 $('cam-close').onclick = closeCam;
