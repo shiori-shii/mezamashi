@@ -154,6 +154,10 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   background:linear-gradient(100deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);
   transform:translateX(-140%);animation:sweep 3.4s ease-in-out infinite;
 }
+/* 記録ボタンは月・太陽のアイコンと同じ色にそろえる */
+.btn.bed{background:linear-gradient(118deg,#9fb0ff,#5a6fd8);color:#fff}
+.btn.wake{background:linear-gradient(118deg,#ffd978,#e59c0c);color:#4a3200}
+.btn.bed svg,.btn.wake svg{width:15px;height:15px;vertical-align:-2px;margin-right:7px}
 .btn.ghost{background:transparent}
 .btn.sm{padding:7px 12px;font-size:12px;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
 .btn.big{width:100%;padding:15px;font-size:15px;clip-path:polygon(12px 0,100% 0,calc(100% - 12px) 100%,0 100%)}
@@ -246,11 +250,13 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .seg.mini{margin:0;gap:3px}
 .seg.mini button{flex:0 0 auto;font-size:10px;padding:5px 11px;
   clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)}
-.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+/* minmax(0,1fr) にしないと、セルの中身が列幅より広いとき列が押し広げられ、
+   右側（木金土）がはみ出して潰れる */
+.grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .wd{text-align:center;font-size:10px;color:var(--muted);padding:2px 0;font-weight:700}
 .cell{
   aspect-ratio:1/1.1;background:var(--btn);padding:4px;cursor:pointer;
-  display:flex;flex-direction:column;
+  display:flex;flex-direction:column;min-width:0;overflow:hidden;
   clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%);
   transition:box-shadow .2s;
 }
@@ -258,11 +264,11 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .cell.today{box-shadow:inset 0 0 0 2px var(--accent)}
 .cell .d{font-size:11px;color:var(--muted);font-weight:700}
 .cell.has .d{color:var(--fg)}
-.chips{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:auto;min-height:13px}
+.chips{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:auto;min-height:16px}
 .chip{position:relative;overflow:hidden;flex:none}
-/* 就寝・起床は平行四辺形のラベル、ルーティンは丸 */
-.chip.s{width:22px;height:9px;clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}
-.chip.r{width:8px;height:8px;border-radius:50%}
+/* 就寝・起床セットはダイヤ、ルーティンは丸 */
+.chip.s{width:16px;height:16px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+.chip.r{width:11px;height:11px;border-radius:50%}
 .chip::after{content:"";position:absolute;inset:0;
   background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.9) 50%,transparent 70%);
   transform:translateX(-130%);animation:shine 2.8s ease-in-out infinite}
@@ -470,6 +476,14 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       <div id="tasks"></div>
       <div id="routine-status" class="center" style="margin-top:14px"></div>
     </div>
+
+    <div class="card">
+      <h2><i>RECORD</i>ルーティンの記録</h2>
+      <div id="routine-cal"></div>
+      <p class="muted" style="margin:2px 0 0;font-size:11px;line-height:1.6">
+        丸バッジ＝その夜のルーティンを全部完了。日付をタップで詳細。
+      </p>
+    </div>
   </section>
 
   <!-- ============ アラーム ============ -->
@@ -501,8 +515,8 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 
     <div class="card">
       <h2><i>RECORD</i>今夜の記録</h2>
-      <button class="btn big primary" id="rec-bed" style="margin-bottom:10px">いま就寝する</button>
-      <button class="btn big" id="rec-wake">いま起床した</button>
+      <button class="btn big bed" id="rec-bed" style="margin-bottom:10px">いま就寝する</button>
+      <button class="btn big wake" id="rec-wake">いま起床した</button>
       <div id="rec-status" style="margin-top:14px"></div>
     </div>
   </section>
@@ -618,7 +632,8 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       </div>
       <div id="cal-body"></div>
       <p class="muted" style="margin:6px 0 0;font-size:11px;line-height:1.6">
-        バッジ表示：平行四辺形＝就寝・起床セット／丸＝ルーティン。日付をタップで詳細。
+        ダイヤのバッジ＝就寝・起床がそろった日。日付をタップで詳細。
+        ルーティンの記録はルーティンタブにあります。
       </p>
     </div>
     <div class="card">
@@ -1028,6 +1043,8 @@ function renderAlarm(){
   $('custom-name').textContent  = st.customName || '音源が未設定です';
   renderCountdown();
   renderWarn();
+  $('rec-bed').innerHTML  = ICON_MOON + 'いま就寝する';
+  $('rec-wake').innerHTML = ICON_SUN  + 'いま起床した';
 
   const key = activeNight(), rec = day(key, true);
   const r = sleepRank(key);
@@ -1673,43 +1690,59 @@ const chipBG = rk => ({
   bronze:'linear-gradient(135deg,#f0c49a,#a2622a)'
 }[rk] || 'transparent');
 
-function cellHTML(key, label, inMonth = true){
+function cellHTML(key, label, kind, inMonth = true){
   const rec = S.days[key];
-  const s = sleepRank(key), r = routineRank(rec);
-  const has = !!rec && (rec.bedAt || rec.wakeAt || (rec.routine || []).length);
+  const time = kind === 'sleep' && calShow === 'time';
+  const has = kind === 'routine'
+    ? !!(rec && (rec.routine || []).length)
+    : !!(rec && (rec.bedAt || rec.wakeAt));
   let body;
-  if (calShow === 'time'){
+  if (time){
     const t = iso => iso ? hm(new Date(iso)) : '--:--';
     body = `<div class="tm">
       <span class="bed${rec && rec.bedAt  ? '' : ' off'}">${ICON_MOON}${t(rec && rec.bedAt)}</span>
       <span class="wake${rec && rec.wakeAt ? '' : ' off'}">${ICON_SUN}${t(rec && rec.wakeAt)}</span>
     </div>`;
-  } else {
+  } else if (kind === 'routine'){
+    const r = routineRank(rec);
     body = `<div class="chips">
-      <div class="chip s ${s && s !== 'none' ? '' : 'off'}" style="background:${chipBG(s)}"></div>
-      <div class="chip r ${r ? '' : 'off'}" style="background:${chipBG(r)}"></div>
-    </div>`;
+      <div class="chip r ${r ? '' : 'off'}" style="background:${chipBG(r)}"></div></div>`;
+  } else {
+    const s = sleepRank(key);
+    body = `<div class="chips">
+      <div class="chip s ${s && s !== 'none' ? '' : 'off'}" style="background:${chipBG(s)}"></div></div>`;
   }
-  return `<div class="cell${calShow === 'time' ? ' time' : ''}${has ? ' has' : ''}${
+  return `<div class="cell${time ? ' time' : ''}${has ? ' has' : ''}${
     key === ymd(new Date()) ? ' today' : ''}"
     data-key="${key}" style="${inMonth ? '' : 'opacity:.35'}">
     <div class="d">${label}</div>${body}</div>`;
 }
-function weekHead(ws, label){
+function weekHead(ws, label, kind){
   const keys = weekKeys(ws);
-  const n = keys.filter(achieved).length;
-  const rn = keys.filter(k => routineRank(S.days[k])).length;
+  const n = kind === 'routine'
+    ? keys.filter(k => routineRank(S.days[k])).length
+    : keys.filter(achieved).length;
   return `<div class="whead">
     <span class="wk">${label}</span>
-    <span class="wcol"><i>ルーティン</i><b>${rn}<small>/7</small></b></span>
-    <span class="wcol"><i>睡眠</i><b>${n}<small>/7</small></b></span>
+    <span class="wcol"><i>${kind === 'routine' ? 'ルーティン達成' : '就寝・起床達成'}</i>
+      <b>${n}<small>/7</small></b></span>
     <span class="wbadge">${badgeHTML(weekRank(n))}</span></div>`;
 }
-function weekBlock(ws, label){
-  return `<div class="week">${weekHead(ws, label)}
+function weekBlock(ws, label, kind){
+  return `<div class="week">${weekHead(ws, label, kind)}
     <div class="grid">${WD.map(w => `<div class="wd">${w}</div>`).join('')}</div>
-    <div class="grid">${weekKeys(ws).map(k => cellHTML(k, parseKey(k).getDate())).join('')}</div>
+    <div class="grid">${weekKeys(ws).map(k =>
+      cellHTML(k, parseKey(k).getDate(), kind)).join('')}</div>
   </div>`;
+}
+/* ルーティンタブ用の小さなカレンダー（先週・今週の2週間） */
+function renderRoutineCal(){
+  const cur = weekStart(new Date());
+  const box = $('routine-cal');
+  box.innerHTML = weekBlock(addDays(cur, -7), '先週', 'routine')
+                + weekBlock(cur, '今週', 'routine');
+  box.querySelectorAll('[data-key]').forEach(c =>
+    c.onclick = () => showDetail(c.dataset.key));
 }
 function renderCalendar(){
   if (calMode === 'two'){
@@ -1719,17 +1752,18 @@ function renderCalendar(){
       : ymd(ws) === ymd(addDays(weekStart(new Date()), -7)) ? '先週'
       : `${md(ws)}の週`;
     $('cal-label').textContent = `${md(w0)} – ${md(addDays(anchor,6))}`;
-    $('cal-body').innerHTML = weekBlock(w0, name(w0)) + weekBlock(anchor, name(anchor));
+    $('cal-body').innerHTML = weekBlock(w0, name(w0), 'sleep')
+                            + weekBlock(anchor, name(anchor), 'sleep');
   } else {
     const y = viewM.getFullYear(), m = viewM.getMonth();
     $('cal-label').textContent = `${y}年 ${m + 1}月`;
     const first = new Date(y, m, 1), last = new Date(y, m + 1, 0).getDate();
     let cells = '';
     for (let i = 0; i < first.getDay(); i++) cells += '<div class="cell empty"></div>';
-    for (let d = 1; d <= last; d++) cells += cellHTML(`${y}-${pad(m+1)}-${pad(d)}`, d);
+    for (let d = 1; d <= last; d++) cells += cellHTML(`${y}-${pad(m+1)}-${pad(d)}`, d, 'sleep');
     let weeks = '', wi = 0;
     for (let ws = weekStart(first); ws <= new Date(y, m, last); ws = addDays(ws, 7))
-      weeks += `<div style="margin-top:10px">${weekHead(ws, `第${++wi}週`)}</div>`;
+      weeks += `<div style="margin-top:10px">${weekHead(ws, `第${++wi}週`, 'sleep')}</div>`;
     $('cal-body').innerHTML =
       `<div class="grid">${WD.map(w => `<div class="wd">${w}</div>`).join('')}</div>
        <div class="grid" style="margin-top:4px">${cells}</div>
@@ -1793,7 +1827,9 @@ function showDetail(key){
 }
 
 /* ===================== 初期化 ===================== */
-function renderAll(){ renderRoutine(); renderTaskEditor(); renderAlarm(); renderCalendar(); }
+function renderAll(){
+  renderRoutine(); renderRoutineCal(); renderTaskEditor(); renderAlarm(); renderCalendar();
+}
 /* 旧モデル（時間帯で夜を決める方式）では、起床予定が昼過ぎのときに
    記録が隣の夜へ入ってしまっていた。保存済みの記録を正しい夜へ移し替える。 */
 if (!S.migratedNights){
