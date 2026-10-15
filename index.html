@@ -50,7 +50,7 @@
 }
 
 *{box-sizing:border-box}
-html,body{margin:0;padding:0}
+html,body{margin:0;padding:0;overflow-x:hidden}
 body{
   background:var(--bg);
   color:var(--fg);
@@ -98,7 +98,8 @@ nav button.on::after{
   transform:translateX(-140%);animation:sweep .7s ease-out;
 }
 
-main{max-width:520px;margin:14px auto;padding:0 16px}
+/* タブごとの高さの差で画面が跳ねないよう、最低限の高さを確保する */
+main{max-width:520px;margin:14px auto;padding:0 16px;min-height:calc(100vh - 190px)}
 section{display:none}
 section.on{display:block}
 
@@ -125,7 +126,8 @@ section.on>.card:nth-of-type(2){animation-delay:.06s}
 section.on>.card:nth-of-type(3){animation-delay:.12s}
 section.on>.card:nth-of-type(4){animation-delay:.18s}
 section.on>.card:nth-of-type(5){animation-delay:.24s}
-@keyframes cardIn{0%{opacity:0;transform:translateX(30px) skewX(-5deg)}100%{opacity:1;transform:none}}
+/* 横に動かすと一瞬だけ画面幅が広がってしまうため、縦方向のみで見せる */
+@keyframes cardIn{0%{opacity:0;transform:translateY(16px) scale(.985)}100%{opacity:1;transform:none}}
 
 .row{display:flex;align-items:center;gap:10px}
 .row+.row{margin-top:10px}
@@ -296,6 +298,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   background:linear-gradient(180deg,var(--accent2),var(--accent-dk));transform:skewX(-12deg);
 }
 .srow .chip.s{width:25px;height:24px;margin-left:8px}
+.srow .chip.r.big{width:21px;height:21px;margin-left:10px}
 .srow .cnt{flex:none;font-size:12px;font-weight:800;color:var(--muted);min-width:46px}
 .srow .cnt em{font-style:normal;font-size:19px;color:var(--fg);margin-left:2px;
   font-variant-numeric:tabular-nums}
@@ -425,14 +428,19 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 #flash.on{animation:flash .55s ease-out}
 @keyframes flash{0%{opacity:.85}100%{opacity:0}}
 
-/* 画面切替の斜めワイプ */
-#wipe{
-  position:fixed;top:-30%;bottom:-30%;left:-60%;right:-60%;z-index:45;pointer-events:none;opacity:0;
-  background:linear-gradient(100deg,transparent 0 42%,var(--accent-dk) 42% 52%,
-             var(--accent2) 52% 57%,transparent 57% 100%);
+/* 画面切替の斜めワイプ。帯は内側の要素にして、外へはみ出さないよう切り取る */
+#wipe{position:fixed;inset:0;z-index:45;pointer-events:none;overflow:hidden;opacity:0}
+#wipe::before{
+  content:"";position:absolute;top:-30%;bottom:-30%;left:0;width:75%;
+  transform:translateX(-140%) skewX(-12deg);
+  background:linear-gradient(100deg,transparent 0 30%,var(--accent-dk) 30% 60%,
+             var(--accent2) 60% 72%,transparent 72% 100%);
 }
-#wipe.go{animation:wipe .5s cubic-bezier(.45,0,.2,1)}
-@keyframes wipe{0%{opacity:1;transform:translateX(-45%)}100%{opacity:1;transform:translateX(45%)}}
+#wipe.go{opacity:1}
+#wipe.go::before{animation:wipe .5s cubic-bezier(.45,0,.2,1) forwards}
+@keyframes wipe{
+  0%{transform:translateX(-140%) skewX(-12deg)}
+  100%{transform:translateX(190%) skewX(-12deg)}}
 
 /* ---------- 小さな通知 ---------- */
 #note{position:fixed;left:0;right:0;bottom:20px;z-index:60;pointer-events:none;text-align:center;padding:0 16px}
@@ -515,6 +523,11 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       <p class="muted" style="margin:2px 0 0;font-size:11px;line-height:1.6">
         丸バッジ＝その夜のルーティンを全部完了。日付をタップで詳細。
       </p>
+    </div>
+
+    <div class="card">
+      <h2><i>BADGES</i>ルーティンのバッジ</h2>
+      <div id="rstats"></div>
     </div>
   </section>
 
@@ -669,7 +682,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       </p>
     </div>
     <div class="card">
-      <h2><i>BADGES</i>バッジ獲得数（累計）</h2>
+      <h2><i>BADGES</i>就寝・起床のバッジ</h2>
       <div id="stats"></div>
     </div>
   </section>
@@ -1467,11 +1480,15 @@ function fire(){
   }catch(e){}
   vibrateStart(); notify();
   $('ring-time').textContent = hm(new Date());
+  AL.ringStart = AL.ringStart || Date.now();
   $('ring-body').innerHTML = S.settings.qrMode
     ? `<button class="btn big primary" id="qr-stop">QRを読み取って停止</button>
-       <div class="row" style="margin-top:12px">
-         <input type="text" id="unlock" class="grow" placeholder="予備キーワード">
-         <button class="btn" id="unlock-btn">解除</button>
+       <div id="fallback" style="display:none;margin-top:14px">
+         <div class="muted" style="margin-bottom:6px">QRが読めないとき</div>
+         <div class="row">
+           <input type="text" id="unlock" class="grow" placeholder="予備キーワード">
+           <button class="btn" id="unlock-btn">解除</button>
+         </div>
        </div>`
     : `<button class="btn big primary" id="stop-btn">停止する</button>`;
   $('ring').classList.add('on');
@@ -1486,7 +1503,7 @@ function fire(){
   renderAlarm();
 }
 function stopAlarm(){
-  AL.ringing = false;
+  AL.ringing = false; AL.ringStart = null;
   vibrateStop(); muteNow(); restoreKeeper(); closeCam();
   $('ring').classList.remove('on');
   setTarget(S.settings.alarmOn ? nextWakeTime() : null);   // 翌日を再予約
@@ -1494,6 +1511,17 @@ function stopAlarm(){
   renderAlarm();
   if (!AL.isTest) askWake();        // 起床確認（記録はここを押した時刻）
   AL.isTest = false;
+}
+
+/* QRで止められないまま5分たったときだけ、予備キーワードを出す。
+   最初から出ていると、QRを読みに行く意味がなくなるため。 */
+const FALLBACK_AFTER = 5 * 60 * 1000;
+function showFallback(){
+  const el = $('fallback');
+  if (el && el.style.display === 'none'){
+    el.style.display = 'block';
+    note('QRが読めないとき用に<b>予備キーワード</b>を表示しました');
+  }
 }
 
 /* ---- 起床確認とスヌーズ ---- */
@@ -1560,6 +1588,8 @@ $('test-30').onclick = async () => {
 /* ---- 見張り（タイマーが絞られても復帰時に検知） ---- */
 setInterval(() => {
   if (AL.target && !AL.ringing && Date.now() >= AL.target) fire();
+  if (AL.ringing && S.settings.qrMode && AL.ringStart
+      && Date.now() - AL.ringStart >= FALLBACK_AFTER) showFallback();
   if (document.getElementById('v-alarm').classList.contains('on')) renderCountdown();
   applyTheme();                                   // じどう設定のとき時間帯で切り替える
 }, 1000);
@@ -1806,20 +1836,31 @@ function renderCalendar(){
   });
   renderStats();
 }
-function renderStats(){
+/* 就寝・起床とルーティンは別々に数える */
+function renderStats(){ statsInto('sleep', 'stats'); statsInto('routine', 'rstats'); }
+function statsInto(kind, elId){
   const c = {holo:0, gold:0, silver:0, bronze:0};
   const bump = r => { if (r && c[r] !== undefined) c[r]++; };
-  Object.keys(S.days).forEach(k => { bump(sleepRank(k)); bump(routineRank(S.days[k])); });
+  const dayRank  = k => kind === 'sleep' ? sleepRank(k) : routineRank(S.days[k]);
+  const weekCount = keys => kind === 'sleep'
+    ? keys.filter(achieved).length
+    : keys.filter(k => routineRank(S.days[k])).length;
+
+  Object.keys(S.days).forEach(k => bump(dayRank(k)));
   const seen = new Set();
   Object.keys(S.days).forEach(k => {
     const ws = ymd(weekStart(parseKey(k)));
     if (seen.has(ws)) return; seen.add(ws);
-    bump(weekRank(weekKeys(parseKey(ws)).filter(achieved).length));
+    bump(weekRank(weekCount(weekKeys(parseKey(ws)))));
   });
-  const COND = {holo:'予定までに達成', gold:'15分以内', silver:'30分以内', bronze:'45分以内'};
-  $('stats').innerHTML = ORDER.slice(0,4).map(r =>
+
+  const COND = kind === 'sleep'
+    ? {holo:'予定までに達成', gold:'15分以内', silver:'30分以内', bronze:'45分以内'}
+    : {holo:'全部完了／週7日', gold:'週6日', silver:'週5日', bronze:'—'};
+  const chip = kind === 'sleep' ? 'chip s' : 'chip r big';
+  $(elId).innerHTML = ORDER.slice(0,4).map(r =>
     `<div class="srow">
-      <span class="chip s" style="background:${chipBG(r)}"></span>
+      <span class="${chip}" style="background:${chipBG(r)}"></span>
       <span class="cnt">×<em>${c[r]}</em></span>
       <span class="cond">${COND[r]}</span>
     </div>`).join('');
