@@ -264,11 +264,43 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .cell.today{box-shadow:inset 0 0 0 2px var(--accent)}
 .cell .d{font-size:11px;color:var(--muted);font-weight:700}
 .cell.has .d{color:var(--fg)}
-.chips{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:auto;min-height:16px}
+.chips{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:auto;min-height:18px}
 .chip{position:relative;overflow:hidden;flex:none}
-/* 就寝・起床セットはダイヤ、ルーティンは丸 */
-.chip.s{width:16px;height:16px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+/* 就寝・起床セットは宝石のダイヤ（ブリリアントカット）、ルーティンは丸 */
+.chip.s{
+  width:19px;height:18px;
+  clip-path:polygon(26% 0,74% 0,100% 34%,50% 100%,0 34%);
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.25));
+}
+/* カット面の線。横線がテーブル、2本の斜線は下端の尖りから放射させる
+   （円錐グラデーションの中心を尖りに置くと、線が正しく一点へ集まる） */
+.chip.s::before{
+  content:"";position:absolute;inset:0;z-index:1;
+  background:
+    linear-gradient(to bottom,transparent 31%,rgba(255,255,255,.8) 31%,
+                    rgba(255,255,255,.8) 37%,transparent 37%),
+    conic-gradient(from 0deg at 50% 100%,
+      transparent 0 18deg,rgba(255,255,255,.6) 18deg 22deg,
+      transparent 22deg 338deg,rgba(255,255,255,.6) 338deg 342deg,transparent 342deg 360deg);
+}
 .chip.r{width:11px;height:11px;border-radius:50%}
+
+/* バッジ獲得数の行 */
+.srow{
+  display:flex;align-items:center;gap:11px;padding:9px 12px;margin-bottom:5px;
+  background:var(--btn);position:relative;
+  clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
+}
+.srow::before{
+  content:"";position:absolute;left:4px;top:7px;bottom:7px;width:4px;
+  background:linear-gradient(180deg,var(--accent2),var(--accent-dk));transform:skewX(-12deg);
+}
+.srow .chip.s{width:25px;height:24px;margin-left:8px}
+.srow .cnt{flex:none;font-size:12px;font-weight:800;color:var(--muted);min-width:46px}
+.srow .cnt em{font-style:normal;font-size:19px;color:var(--fg);margin-left:2px;
+  font-variant-numeric:tabular-nums}
+.srow .cond{flex:1;text-align:right;font-size:10.5px;font-weight:700;color:var(--muted);
+  letter-spacing:.02em}
 .chip::after{content:"";position:absolute;inset:0;
   background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.9) 50%,transparent 70%);
   transform:translateX(-130%);animation:shine 2.8s ease-in-out infinite}
@@ -1784,8 +1816,13 @@ function renderStats(){
     if (seen.has(ws)) return; seen.add(ws);
     bump(weekRank(weekKeys(parseKey(ws)).filter(achieved).length));
   });
+  const COND = {holo:'予定までに達成', gold:'15分以内', silver:'30分以内', bronze:'45分以内'};
   $('stats').innerHTML = ORDER.slice(0,4).map(r =>
-    `<div class="kv"><span>${RANK_LABEL[r]}</span><span>${badgeHTML(r)} &nbsp;${c[r]} 個</span></div>`).join('');
+    `<div class="srow">
+      <span class="chip s" style="background:${chipBG(r)}"></span>
+      <span class="cnt">×<em>${c[r]}</em></span>
+      <span class="cond">${COND[r]}</span>
+    </div>`).join('');
 }
 
 /* ---- 日別詳細 ---- */
