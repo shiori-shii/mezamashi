@@ -267,11 +267,15 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.9) 50%,transparent 70%);
   transform:translateX(-130%);animation:shine 2.8s ease-in-out infinite}
 .chip.off{display:none}
-/* 時刻表示モード */
-.tm{margin-top:auto;text-align:center;font-size:8.5px;line-height:1.45;font-weight:700;
-  letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-.tm span{display:block;color:var(--fg)}
-.tm span.off{color:var(--line)}
+/* 時刻表示モード（セルの高さを内容に合わせる） */
+.cell.time{aspect-ratio:auto;min-height:56px;overflow:hidden;padding:4px 2px}
+.tm{margin-top:auto;font-size:8.5px;line-height:1.35;font-weight:700;
+  letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.tm span{display:flex;align-items:center;justify-content:center;gap:2px;color:var(--fg)}
+.tm svg{width:7px;height:7px;flex:none;display:block}
+.tm .bed  svg{color:#8a9bf5}
+.tm .wake svg{color:var(--gold)}
+.tm span.off,.tm span.off svg{color:var(--line)}
 
 .week{margin-bottom:16px}
 .whead{display:flex;align-items:center;gap:9px;margin-bottom:7px}
@@ -305,6 +309,10 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
 .kv:last-child{border-bottom:none}
 .kv>span:first-child{color:var(--muted);flex:none}
+.kv .lbl{display:inline-flex;align-items:center;gap:5px}
+.kv .lbl svg{width:11px;height:11px;flex:none}
+.kv .bed  svg{color:#8a9bf5}
+.kv .wake svg{color:var(--gold)}
 
 /* ---------- アラーム設定 ---------- */
 .cd{
@@ -557,6 +565,14 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
         <button class="btn ghost sm grow" id="test-alarm">すぐ鳴らす</button>
         <button class="btn ghost sm grow" id="test-30">30秒後にテスト</button>
       </div>
+      <div class="row">
+        <button class="btn ghost sm grow" id="sample-add">サンプル記録を入れる</button>
+        <button class="btn ghost sm grow" id="sample-del">サンプルを消す</button>
+      </div>
+      <p class="muted" style="margin:10px 0 0;font-size:11px;line-height:1.6">
+        サンプルはカレンダーで各バッジの見え方を確かめるための仮データです。
+        記録のない日だけに入り、「サンプルを消す」で元に戻せます。
+      </p>
     </div>
 
     <div class="card">
@@ -601,7 +617,9 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
         <button class="btn sm" id="cal-next">›</button>
       </div>
       <div id="cal-body"></div>
-      <p class="muted" style="margin:4px 0 0">● 大=就寝・起床セット／● 小=ルーティン　タップで詳細</p>
+      <p class="muted" style="margin:6px 0 0;font-size:11px;line-height:1.6">
+        バッジ表示：平行四辺形＝就寝・起床セット／丸＝ルーティン。日付をタップで詳細。
+      </p>
     </div>
     <div class="card">
       <h2><i>BADGES</i>バッジ獲得数（累計）</h2>
@@ -1016,8 +1034,8 @@ function renderAlarm(){
   const t = iso => iso ? hm(new Date(iso)) : '<span class="muted">未記録</span>';
   $('rec-status').innerHTML = `
     <div class="kv"><span>対象</span><span>${md(parseKey(key))} の夜</span></div>
-    <div class="kv"><span>就寝</span><span>${t(rec.bedAt)}</span></div>
-    <div class="kv"><span>起床</span><span>${t(rec.wakeAt)}</span></div>
+    <div class="kv"><span class="lbl bed">${ICON_MOON}就寝</span><span>${t(rec.bedAt)}</span></div>
+    <div class="kv"><span class="lbl wake">${ICON_SUN}起床</span><span>${t(rec.wakeAt)}</span></div>
     <div class="center" style="margin-top:12px">${r
       ? badgeHTML(r, RANK_LABEL[r], true)
       : '<span class="muted">就寝・起床がそろうとバッジを獲得</span>'}</div>`;
@@ -1452,6 +1470,37 @@ document.querySelectorAll('#snooze-seg button').forEach(b => b.onclick = async (
   note(`<b>${m}分後</b>にもう一度鳴らします`);
 });
 
+/* ---- バッジの見え方を確認するためのサンプル記録 ---- */
+$('sample-add').onclick = () => {
+  // 予定とのズレ（分）を変えて、ホロ→金→銀→銅→なし を一巡させる
+  const deltas = [-10, 0, 8, 14, 22, 28, 35, 44, 55, 70, -5, 12, 26, 40];
+  let n = 0;
+  for (let i = 1; i <= 14; i++){
+    const key = ymd(addDays(new Date(), -i));
+    const rec = S.days[key];
+    if (rec && (rec.bedAt || rec.wakeAt)) continue;      // 本物の記録は触らない
+    const r = day(key, true);
+    const d = deltas[(i - 1) % deltas.length];
+    r.sample = true;
+    r.bedPlan = r.bedPlan || S.settings.bedPlan;
+    r.wakePlan = r.wakePlan || S.settings.wakePlan;
+    r.bedAt  = new Date(planAt(key, 'bed').getTime()  + d * 60000).toISOString();
+    r.wakeAt = new Date(planAt(key, 'wake').getTime() + (i % 3 ? d : d + 20) * 60000).toISOString();
+    if (i % 3 !== 0) r.routine = S.tasks.map(t => t.id);  // 3日に1日はルーティン未達成
+    n++;
+  }
+  save(); renderAll();
+  note(n ? `サンプルを <b>${n}日分</b> 入れました` : '空いている日がありませんでした');
+};
+$('sample-del').onclick = () => {
+  const keys = Object.keys(S.days).filter(k => S.days[k].sample);
+  if (!keys.length){ note('サンプルはありません'); return; }
+  if (!confirm(`サンプル記録 ${keys.length}日分を削除しますか？`)) return;
+  keys.forEach(k => { delete S.days[k]; });
+  save(); renderAll();
+  note(`サンプル <b>${keys.length}日分</b> を削除しました`);
+};
+
 $('test-alarm').onclick = async () => { await armAudio(); AL.isTest = true; fire(); };
 $('test-30').onclick = async () => {
   await armAudio();
@@ -1610,6 +1659,13 @@ $('cal-next').onclick = () => {
 };
 
 const WD = ['日','月','火','水','木','金','土'];
+const ICON_MOON = '<svg viewBox="0 0 10 10" aria-hidden="true">'
+  + '<path d="M7.6 6.9A4.1 4.1 0 0 1 3.1 2.4 4.1 4.1 0 1 0 7.6 6.9z" fill="currentColor"/></svg>';
+const ICON_SUN = '<svg viewBox="0 0 10 10" aria-hidden="true">'
+  + '<circle cx="5" cy="5" r="2" fill="currentColor"/>'
+  + '<g stroke="currentColor" stroke-width="1.1" stroke-linecap="round">'
+  + '<path d="M5 .5v1.1M5 8.4v1.1M.5 5h1.1M8.4 5h1.1'
+  + 'M1.8 1.8l.8.8M7.4 7.4l.8.8M8.2 1.8l-.8.8M2.6 7.4l-.8.8"/></g></svg>';
 const chipBG = rk => ({
   holo:'linear-gradient(115deg,#ff9ad5,#9ad7ff,#9bffc6,#fff59a)',
   gold:'linear-gradient(135deg,#ffe9a8,#d99b1c)',
@@ -1625,8 +1681,8 @@ function cellHTML(key, label, inMonth = true){
   if (calShow === 'time'){
     const t = iso => iso ? hm(new Date(iso)) : '--:--';
     body = `<div class="tm">
-      <span${rec && rec.bedAt  ? '' : ' class="off"'}>${t(rec && rec.bedAt)}</span>
-      <span${rec && rec.wakeAt ? '' : ' class="off"'}>${t(rec && rec.wakeAt)}</span>
+      <span class="bed${rec && rec.bedAt  ? '' : ' off'}">${ICON_MOON}${t(rec && rec.bedAt)}</span>
+      <span class="wake${rec && rec.wakeAt ? '' : ' off'}">${ICON_SUN}${t(rec && rec.wakeAt)}</span>
     </div>`;
   } else {
     body = `<div class="chips">
@@ -1634,7 +1690,8 @@ function cellHTML(key, label, inMonth = true){
       <div class="chip r ${r ? '' : 'off'}" style="background:${chipBG(r)}"></div>
     </div>`;
   }
-  return `<div class="cell${has ? ' has' : ''}${key === ymd(new Date()) ? ' today' : ''}"
+  return `<div class="cell${calShow === 'time' ? ' time' : ''}${has ? ' has' : ''}${
+    key === ymd(new Date()) ? ' today' : ''}"
     data-key="${key}" style="${inMonth ? '' : 'opacity:.35'}">
     <div class="d">${label}</div>${body}</div>`;
 }
@@ -1711,11 +1768,11 @@ function showDetail(key){
     <div class="center" style="margin:4px 0 14px">${r
       ? badgeHTML(r, RANK_LABEL[r], true)
       : '<span class="muted">就寝・起床がそろうとバッジ獲得</span>'}</div>
-    <div class="kv"><span>就寝予定</span><span>${bedPlan}</span></div>
-    <div class="kv"><span>実際の就寝</span><span>${dm('bed')}
+    <div class="kv"><span class="lbl bed">${ICON_MOON}就寝予定</span><span>${bedPlan}</span></div>
+    <div class="kv"><span class="lbl bed">${ICON_MOON}実際の就寝</span><span>${dm('bed')}
       <input type="time" id="e-bed" value="${rec.bedAt ? hm(new Date(rec.bedAt)) : ''}" style="width:110px"></span></div>
-    <div class="kv"><span>起床予定</span><span>${wakePlan}</span></div>
-    <div class="kv"><span>実際の起床</span><span>${dm('wake')}
+    <div class="kv"><span class="lbl wake">${ICON_SUN}起床予定</span><span>${wakePlan}</span></div>
+    <div class="kv"><span class="lbl wake">${ICON_SUN}実際の起床</span><span>${dm('wake')}
       <input type="time" id="e-wake" value="${rec.wakeAt ? hm(new Date(rec.wakeAt)) : ''}" style="width:110px"></span></div>
     <div class="kv"><span>ルーティン</span><span>${rR ? badgeHTML('holo','達成') :
       `<span class="muted">${(rec.routine || []).length} / ${S.tasks.length}</span>`}</span></div>
