@@ -354,6 +354,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .kv .lbl svg{width:11px;height:11px;flex:none}
 .kv .bed  svg{color:#8a9bf5}
 .kv .wake svg{color:var(--gold)}
+.kv .dt{font-size:11px;color:var(--muted);font-weight:700;margin-right:5px}
 
 /* ---------- アラーム設定 ---------- */
 .cd{
@@ -373,6 +374,15 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 @keyframes camPulse{0%,100%{opacity:.55}50%{opacity:1}}
 
 /* ---------- 鳴動 ---------- */
+/* おやすみモード：画面を点けたまま前面で待機する。暗く描いて眩しさを抑える */
+#sleepmode{background:#000;backdrop-filter:none;padding:0}
+#sleepmode .smwrap{text-align:center;padding:26px 20px}
+.smclock{font-size:62px;font-weight:800;line-height:1;letter-spacing:.02em;
+  color:#23304a;font-variant-numeric:tabular-nums}
+.smsub{margin-top:12px;font-size:13px;font-weight:700;color:#1d2941}
+.smnote{margin:30px 0 20px;font-size:11px;line-height:1.9;color:#151e30}
+#sleepmode .btn{background:#0f1726;color:#2a3853}
+
 #ring .time{font-size:46px;font-weight:800;text-align:center;margin:6px 0 16px;letter-spacing:.04em}
 #ring .panel{animation:shake .9s ease-in-out infinite}
 @keyframes shake{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
@@ -543,6 +553,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
         <button class="btn primary" id="toggle-alarm">ONにする</button>
       </div>
       <div class="cd" id="countdown"></div>
+      <button class="btn big" id="sleep-mode" style="margin-top:10px">おやすみモードにする</button>
       <div class="warn" id="alarm-warn"></div>
     </div>
 
@@ -703,6 +714,18 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   </div>
 </div>
 
+<div class="ov" id="sleepmode">
+  <div class="smwrap">
+    <div class="smclock" id="sm-clock">--:--</div>
+    <div class="smsub" id="sm-sub"></div>
+    <div class="smnote">
+      この画面のままにしておくと、iOSにアプリを終了されずに確実に鳴ります。<br>
+      画面は点いたままになるので、充電しながらお使いください。
+    </div>
+    <button class="btn" id="sm-exit">おやすみモードを終了</button>
+  </div>
+</div>
+
 <div class="ov" id="wakeask">
   <div class="panel">
     <h3>おはようございます</h3>
@@ -810,7 +833,14 @@ function nightFor(kind, t = Date.now()){
   });
   return best;
 }
-const nightKey = (t = Date.now()) => nightFor('bed', t);
+/* いまが「どの夜」かは、起床予定を境に切り替える。
+   就寝予定への近さで決めると、朝のうちはまだ前夜が選ばれてしまい、
+   その時間帯に触った記録やルーティンが1日前にずれてしまうため。 */
+function currentNight(t = Date.now()){
+  const prev = ymd(addDays(new Date(t), -1));
+  return t < planAt(prev, 'wake').getTime() ? prev : ymd(new Date(t));
+}
+const nightKey = (t = Date.now()) => currentNight(t);
 function diffMin(key, kind){
   const rec = S.days[key];
   const at = rec && (kind === 'bed' ? rec.bedAt : rec.wakeAt);
@@ -854,7 +884,7 @@ function activeNight(){
   const now = Date.now();
   const w = nightFor('wake', now), r = S.days[w];
   if (r && r.bedAt && (!r.wakeAt || now - new Date(r.wakeAt) < 3 * 3600e3)) return w;
-  return nightFor('bed', now);
+  return currentNight(now);
 }
 function day(key, create = false){
   if (!S.days[key] && create)
@@ -938,7 +968,7 @@ function routineStreak(){
 }
 function renderRoutine(){
   const key = nightKey(), rec = day(key, true);
-  $('night-label').textContent = `（${key} の夜）`;
+  $('night-label').textContent = `（${md(parseKey(key))} の夜）`;
 
   const box = $('tasks');
   box.innerHTML = '';
@@ -1113,10 +1143,9 @@ function renderWarn(){
   const st = S.settings, w = [];
   if (st.alarmOn && !AL.armed) w.push('⚠ 画面を一度タップすると音が有効になります');
   if (st.alarmOn){
-    w.push('・画面を消しても、他アプリに切り替えても鳴ります');
-    w.push('・ただし<b>iOSがアプリを終了させると鳴りません</b>。低電力モードを切り、'
-         + '他のアプリを閉じておくと終了されにくくなります');
-    if (!st.keepScreen) w.push('・確実に鳴らしたい日は<b>「画面を点けたまま」をON</b>にしてください（終了されません）');
+    w.push('・<b>確実に鳴らすなら「おやすみモード」</b>。前面で待機するのでiOSに終了されません');
+    w.push('・画面を消しても鳴りますが、<b>長時間おくとiOSがアプリを終了させる</b>ことがあります'
+         + '（低電力モードを切り、他アプリを閉じておくと起きにくくなります）');
     w.push('・一晩待機させるため、<b>充電しながら</b>のご使用を推奨します');
   }
   $('alarm-warn').innerHTML = w.map(x => `<div>${x}</div>`).join('');
@@ -1190,7 +1219,8 @@ $('snd-clear').onclick = async () => {
 };
 
 function record(kind){
-  const key = nightFor(kind), rec = day(key, true);   // 予定にいちばん近い夜へ記録する
+  // 就寝はいまの夜へ、起床は予定にいちばん近い夜へ記録する
+  const key = kind === 'bed' ? currentNight() : nightFor('wake'), rec = day(key, true);
   rec.bedPlan  = rec.bedPlan  || S.settings.bedPlan;
   rec.wakePlan = rec.wakePlan || S.settings.wakePlan;
   const field = kind === 'bed' ? 'bedAt' : 'wakeAt';
@@ -1239,7 +1269,11 @@ function makeWav(samples, rate){
   for (let i = 0; i < b.length; i += 0x8000) str += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000));
   return 'data:audio/wav;base64,' + btoa(str);
 }
-function silentWavURL(){ return makeWav(new Float32Array(8000), 8000); }   // 1秒の無音
+function silentWavURL(){            // 1秒。完全な無音だと音声セッションを切られることがある
+  const rate = 8000, a = new Float32Array(rate);
+  for (let i = 0; i < rate; i++) a[i] = Math.sin(2 * Math.PI * 50 * i / rate) * 0.00004;
+  return makeWav(a, rate);
+}
 
 const wavCache = {};
 function alarmWavURL(kind){                 // 2〜4秒のループ素材（継ぎ目が出ないよう整数周期）
@@ -1321,6 +1355,7 @@ async function armAudio(){                 // 必ずユーザー操作の中で�
   try{
     if ('mediaSession' in navigator && window.MediaMetadata)
       navigator.mediaSession.metadata = new MediaMetadata({title:'目覚まし待機中', artist:'ホログラム目覚まし'});
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
   }catch(e){}
   AL.armed = true;
 }
@@ -1438,6 +1473,35 @@ async function setAlarm(on){
   renderAlarm();
 }
 
+/* ---- おやすみモード ----
+   iOSは、長時間バックグラウンドに置かれたWebアプリを終了させることがある。
+   前面に出したまま画面を点けておけば終了されないので、暗い時計画面で待機させる。 */
+function inSleepMode(){ return $('sleepmode').classList.contains('on'); }
+async function enterSleepMode(){
+  await armAudio();                       // 操作の中で音声を確実に有効化しておく
+  if (S.settings.alarmOn && AL.target) schedule();
+  $('sleepmode').classList.add('on');
+  updateSleepClock();
+  requestWakeLock();
+}
+function exitSleepMode(){
+  $('sleepmode').classList.remove('on');
+  if (!S.settings.keepScreen) releaseWakeLock();
+}
+function updateSleepClock(){
+  if (!inSleepMode()) return;
+  $('sm-clock').textContent = hm(new Date());
+  if (AL.target){
+    const s = Math.max(0, Math.round((AL.target - Date.now()) / 1000));
+    $('sm-sub').textContent =
+      `${hm(new Date(AL.target))} に鳴ります（あと ${Math.floor(s/3600)}時間 ${Math.floor(s%3600/60)}分）`;
+  } else {
+    $('sm-sub').textContent = 'アラームは設定されていません';
+  }
+}
+$('sleep-mode').onclick = enterSleepMode;
+$('sm-exit').onclick = exitSleepMode;
+
 /* ---- 画面を点けたまま ---- */
 async function requestWakeLock(){
   try{ if ('wakeLock' in navigator && !AL.wl) AL.wl = await navigator.wakeLock.request('screen'); }catch(e){}
@@ -1478,6 +1542,7 @@ function fire(){
     const g = AL.master.gain, t = AL.ctx.currentTime, cur = Math.max(.4, g.value);
     g.cancelScheduledValues(t); g.setValueAtTime(cur, t); g.linearRampToValueAtTime(1, t + 15);
   }catch(e){}
+  exitSleepMode();
   vibrateStart(); notify();
   $('ring-time').textContent = hm(new Date());
   AL.ringStart = AL.ringStart || Date.now();
@@ -1590,6 +1655,7 @@ setInterval(() => {
   if (AL.target && !AL.ringing && Date.now() >= AL.target) fire();
   if (AL.ringing && S.settings.qrMode && AL.ringStart
       && Date.now() - AL.ringStart >= FALLBACK_AFTER) showFallback();
+  updateSleepClock();
   if (document.getElementById('v-alarm').classList.contains('on')) renderCountdown();
   applyTheme();                                   // じどう設定のとき時間帯で切り替える
 }, 1000);
@@ -1599,7 +1665,7 @@ document.addEventListener('visibilitychange', async () => {
   if (AL.target){
     if (Date.now() >= AL.target) fire();
     else if (!AL.ringing) schedule();        // suspend で currentTime がずれるため再予約
-    if (S.settings.keepScreen) requestWakeLock();
+    if (S.settings.keepScreen || inSleepMode()) requestWakeLock();
   }
 });
 
@@ -1880,10 +1946,12 @@ function showDetail(key){
     <div class="center" style="margin:4px 0 14px">${r
       ? badgeHTML(r, RANK_LABEL[r], true)
       : '<span class="muted">就寝・起床がそろうとバッジ獲得</span>'}</div>
-    <div class="kv"><span class="lbl bed">${ICON_MOON}就寝予定</span><span>${bedPlan}</span></div>
+    <div class="kv"><span class="lbl bed">${ICON_MOON}就寝予定</span><span><b class="dt">${md(planAt(key,'bed'))}</b>
+      <input type="time" id="e-bedplan" value="${bedPlan}" style="width:110px"></span></div>
     <div class="kv"><span class="lbl bed">${ICON_MOON}実際の就寝</span><span>${dm('bed')}
       <input type="time" id="e-bed" value="${rec.bedAt ? hm(new Date(rec.bedAt)) : ''}" style="width:110px"></span></div>
-    <div class="kv"><span class="lbl wake">${ICON_SUN}起床予定</span><span>${wakePlan}</span></div>
+    <div class="kv"><span class="lbl wake">${ICON_SUN}起床予定</span><span><b class="dt">${md(planAt(key,'wake'))}</b>
+      <input type="time" id="e-wakeplan" value="${wakePlan}" style="width:110px"></span></div>
     <div class="kv"><span class="lbl wake">${ICON_SUN}実際の起床</span><span>${dm('wake')}
       <input type="time" id="e-wake" value="${rec.wakeAt ? hm(new Date(rec.wakeAt)) : ''}" style="width:110px"></span></div>
     <div class="kv"><span>ルーティン</span><span>${rR ? badgeHTML('holo','達成') :
@@ -1896,7 +1964,9 @@ function showDetail(key){
   $('d-close').onclick = () => $('ov-detail').classList.remove('on');
   $('d-save').onclick = () => {
     const rr = day(key, true);
-    rr.bedPlan = bedPlan; rr.wakePlan = wakePlan;
+    // 予定を先に確定させてから実績を変換する（予定の位置を基準に日付が決まるため）
+    rr.bedPlan  = $('e-bedplan').value  || bedPlan;
+    rr.wakePlan = $('e-wakeplan').value || wakePlan;
     const b = $('e-bed').value, w = $('e-wake').value;
     rr.bedAt  = b ? instantNear(key, 'bed',  b).toISOString() : undefined;
     rr.wakeAt = w ? instantNear(key, 'wake', w).toISOString() : undefined;
