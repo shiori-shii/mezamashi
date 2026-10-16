@@ -448,9 +448,13 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 }
 #wipe.go{opacity:1}
 #wipe.go::before{animation:wipe .5s cubic-bezier(.45,0,.2,1) forwards}
+#wipe.go.rev::before{animation-name:wipeRev}
 @keyframes wipe{
   0%{transform:translateX(-140%) skewX(-12deg)}
   100%{transform:translateX(190%) skewX(-12deg)}}
+@keyframes wipeRev{
+  0%{transform:translateX(190%) skewX(-12deg)}
+  100%{transform:translateX(-140%) skewX(-12deg)}}
 
 /* ---------- 小さな通知 ---------- */
 #note{position:fixed;left:0;right:0;bottom:20px;z-index:60;pointer-events:none;text-align:center;padding:0 16px}
@@ -945,19 +949,43 @@ document.querySelectorAll('#theme-seg button').forEach(b => b.onclick = () => {
 });
 
 /* ===================== 画面切替 ===================== */
-function wipe(){
+function wipe(back){
   const w = $('wipe');
-  w.classList.remove('go'); void w.offsetWidth; w.classList.add('go');
+  w.classList.remove('go', 'rev'); void w.offsetWidth;
+  w.classList.add('go'); if (back) w.classList.add('rev');
+}
+const VIEWS = [...document.querySelectorAll('nav button')].map(b => b.dataset.view);
+function curView(){ return document.querySelector('nav button.on').dataset.view; }
+function goView(name, back){
+  if (name === curView()) return;
+  wipe(back);
+  document.querySelectorAll('nav button').forEach(x =>
+    x.classList.toggle('on', x.dataset.view === name));
+  document.querySelectorAll('main section').forEach(s =>
+    s.classList.toggle('on', s.id === 'v-' + name));
+  window.scrollTo(0, 0);
+  renderAll();
 }
 document.querySelectorAll('nav button').forEach(b => {
-  b.onclick = () => {
-    if (!b.classList.contains('on')) wipe();
-    document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
-    document.querySelectorAll('main section').forEach(s =>
-      s.classList.toggle('on', s.id === 'v-' + b.dataset.view));
-    renderAll();
-  };
+  b.onclick = () => goView(b.dataset.view, VIEWS.indexOf(b.dataset.view) < VIEWS.indexOf(curView()));
 });
+
+/* 左右スワイプで隣のタブへ。縦スクロールを邪魔しないよう、
+   横の移動量が縦より十分大きいときだけ切り替える。 */
+let swX = 0, swY = 0, swOn = false;
+const overlayOpen = () => !!document.querySelector('.ov.on');
+document.addEventListener('touchstart', e => {
+  swOn = e.touches.length === 1 && !overlayOpen();
+  if (swOn){ swX = e.touches[0].clientX; swY = e.touches[0].clientY; }
+}, {passive:true});
+document.addEventListener('touchend', e => {
+  if (!swOn || overlayOpen()) return;
+  swOn = false;
+  const t = e.changedTouches[0], dx = t.clientX - swX, dy = t.clientY - swY;
+  if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+  const i = VIEWS.indexOf(curView()) + (dx < 0 ? 1 : -1);
+  if (i >= 0 && i < VIEWS.length) goView(VIEWS[i], dx > 0);
+}, {passive:true});
 
 /* ===================== ルーティン ===================== */
 let justId = null;   // 直前にチェックしたタスク（行のヒット演出用）
