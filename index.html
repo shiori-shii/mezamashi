@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
 <title>ホログラム目覚まし</title>
 <meta name="theme-color" content="#0b0f1e">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -51,6 +51,12 @@
 
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;overflow-x:hidden}
+/* アプリとして使うため、長押しの選択とダブルタップ拡大を止める */
+body{
+  -webkit-user-select:none;user-select:none;
+  -webkit-touch-callout:none;touch-action:manipulation;
+}
+input,textarea{-webkit-user-select:text;user-select:text}
 body{
   background:var(--bg);
   color:var(--fg);
@@ -247,8 +253,10 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 
 /* ---------- カレンダー ---------- */
 .calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
-.calhead .m{font-size:14px;font-weight:800;text-align:center;flex:1}
-.calbar{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px}
+.calhead .m{flex:1;text-align:center;font-size:12px;font-weight:700;color:var(--muted)}
+.calbar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.calbar .m{flex:1;text-align:center;font-size:11px;font-weight:700;color:var(--muted);
+  white-space:nowrap;font-variant-numeric:tabular-nums}
 .seg.mini{margin:0;gap:3px}
 .seg.mini button{flex:0 0 auto;font-size:10px;padding:5px 11px;
   clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)}
@@ -688,6 +696,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
           <button data-cal="week" class="on">週</button>
           <button data-cal="month">月</button>
         </div>
+        <div class="m" id="cal-label"></div>
         <div class="seg mini" id="show-seg">
           <button data-show="badge" class="on">バッジ</button>
           <button data-show="time">時刻</button>
@@ -695,7 +704,6 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       </div>
       <div class="calhead">
         <button class="btn sm" id="cal-prev">‹</button>
-        <div class="m" id="cal-label"></div>
         <button class="btn sm" id="cal-next">›</button>
       </div>
       <div id="cal-body"></div>
@@ -1838,13 +1846,6 @@ $('cal-next').onclick = () => {
   if (calMode === 'week') anchor = addDays(anchor, 7); else viewM.setMonth(viewM.getMonth() + 1);
   renderCalendar();
 };
-/* 「今週」「先週」など、見出しに出す週の呼び名 */
-function weekName(ws){
-  const cur = weekStart(new Date());
-  if (ymd(ws) === ymd(cur)) return '今週';
-  if (ymd(ws) === ymd(addDays(cur, -7))) return '先週';
-  return `${md(ws)}の週`;
-}
 
 const WD = ['日','月','火','水','木','金','土'];
 const ICON_MOON = '<svg viewBox="0 0 10 10" aria-hidden="true">'
@@ -1906,8 +1907,9 @@ function weekHead(ws, label, kind){
       <b>${n}<small>/7</small></b></span>
     <span class="wbadge">${badgeHTML(weekRank(n))}</span></div>`;
 }
-function weekBlock(ws, label, kind){
-  return `<div class="week">${weekHead(ws, label, kind)}
+/* 週表示では見出しを出さない（期間はナビ側に出している） */
+function weekBlock(ws, kind){
+  return `<div class="week">
     <div class="grid">${WD.map(w => `<div class="wd">${w}</div>`).join('')}</div>
     <div class="grid">${weekKeys(ws).map(k =>
       cellHTML(k, parseKey(k).getDate(), kind)).join('')}</div>
@@ -1919,7 +1921,7 @@ function renderRoutineCal(){
   if (!rAnchor) rAnchor = weekStart(new Date());
   $('rcal-label').textContent = `${md(rAnchor)} – ${md(addDays(rAnchor,6))}`;
   const box = $('routine-cal');
-  box.innerHTML = weekBlock(rAnchor, weekName(rAnchor), 'routine');
+  box.innerHTML = weekBlock(rAnchor, 'routine');
   box.querySelectorAll('[data-key]').forEach(c =>
     c.onclick = () => showDetail(c.dataset.key));
 }
@@ -1928,7 +1930,7 @@ $('rcal-next').onclick = () => { rAnchor = addDays(rAnchor,  7); renderRoutineCa
 function renderCalendar(){
   if (calMode === 'week'){
     $('cal-label').textContent = `${md(anchor)} – ${md(addDays(anchor,6))}`;
-    $('cal-body').innerHTML = weekBlock(anchor, weekName(anchor), 'sleep');
+    $('cal-body').innerHTML = weekBlock(anchor, 'sleep');
   } else {
     const y = viewM.getFullYear(), m = viewM.getMonth();
     $('cal-label').textContent = `${y}年 ${m + 1}月`;
@@ -2052,6 +2054,10 @@ if (!S.migratedNights){
 applyTheme(true);
 renderAll();
 setTimeout(checkMissed, 800);      // 起動直後に鳴り逃しを知らせる
+
+// iOSではメタタグだけではピンチ拡大を止められないため、ジェスチャ自体を無効化する
+['gesturestart','gesturechange','gestureend'].forEach(ev =>
+  document.addEventListener(ev, e => e.preventDefault(), {passive:false}));
 
 // PWA（ホーム画面に追加して全画面起動・オフライン動作）
 if ('serviceWorker' in navigator && location.protocol === 'https:')
