@@ -272,6 +272,14 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   transition:box-shadow .2s;
 }
 .cell.empty{background:transparent;box-shadow:none;cursor:default;clip-path:none}
+/* 中身を内側の箱に入れ、外側を塗ることで切り欠きに沿った枠にする */
+.cell .in{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.cell.fr{padding:2px}
+.cell.fr .in{background:var(--btn);padding:3px}
+.cell.fr-holo{background-size:300% 100%;animation:holoflow 4.5s linear infinite}
+.frtag{display:inline-block;width:20px;height:9px;margin-left:5px;vertical-align:1px;
+  clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%)}
+.frtag.fr-holo{background-size:300% 100%;animation:holoflow 4.5s linear infinite}
 .cell.today{box-shadow:inset 0 0 0 2px var(--accent)}
 .cell .d{font-size:11px;color:var(--muted);font-weight:700}
 .cell.has .d{color:var(--fg)}
@@ -707,8 +715,8 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       </div>
       <div id="cal-body"></div>
       <p class="muted" style="margin:6px 0 0;font-size:11px;line-height:1.6">
-        ダイヤのバッジ＝就寝・起床がそろった日。日付をタップで詳細。
-        ルーティンの記録はルーティンタブにあります。
+        ダイヤのバッジ＝就寝・起床がそろった日。日付をタップで詳細。<br>
+        マスの枠は睡眠時間の長さ：<b>虹＝8〜9時間</b>／金＝7時間半〜8時間／銀＝7〜7時間半。
       </p>
     </div>
     <div class="card">
@@ -922,6 +930,23 @@ function routineRank(rec){
   return n >= S.tasks.length ? 'holo' : null;
 }
 const achieved = key => { const r = sleepRank(key); return !!r && r !== 'none'; };
+/* 実際に眠っていた長さ（就寝から起床まで） */
+function sleepMinutes(key){
+  const r = S.days[key];
+  if (!r || !r.bedAt || !r.wakeAt) return null;
+  const m = Math.round((new Date(r.wakeAt) - new Date(r.bedAt)) / 60000);
+  return m > 0 ? m : null;
+}
+/* 睡眠時間に応じたカレンダーの枠。上の条件から順に当てはめる */
+function durRank(key){
+  const m = sleepMinutes(key);
+  if (m === null || m > 540) return null;   // 9時間を超えたら枠なし
+  if (m >= 480) return 'holo';              // 8〜9時間
+  if (m >= 450) return 'gold';              // 7時間30分〜8時間
+  if (m >= 420) return 'silver';            // 7〜7時間30分
+  return null;
+}
+const fmtDur = m => `${Math.floor(m / 60)}時間${m % 60}分`;
 function weekRank(n){ return n >= 7 ? 'holo' : n === 6 ? 'gold' : n === 5 ? 'silver' : 'none'; }
 function weekStart(d){ const x = new Date(d); x.setHours(0,0,0,0); return addDays(x, -x.getDay()); }
 function weekKeys(ws){ return Array.from({length:7}, (_,i) => ymd(addDays(ws,i))); }
@@ -1897,10 +1922,12 @@ function cellHTML(key, label, kind, inMonth = true){
     body = `<div class="chips">
       <div class="chip s ${s && s !== 'none' ? '' : 'off'}" style="background:${chipBG(s)}"></div></div>`;
   }
+  const fr = kind === 'sleep' ? durRank(key) : null;   // 睡眠時間による枠
   return `<div class="cell${time ? ' time' : ''}${has ? ' has' : ''}${
-    key === ymd(new Date()) ? ' today' : ''}"
-    data-key="${key}" style="${inMonth ? '' : 'opacity:.35'}">
-    <div class="d">${label}</div>${body}</div>`;
+    key === ymd(new Date()) ? ' today' : ''}${fr ? ' fr fr-' + fr : ''}"
+    data-key="${key}" style="${inMonth ? '' : 'opacity:.35;'}${
+      fr ? 'background:' + chipBG(fr) : ''}">
+    <div class="in"><div class="d">${label}</div>${body}</div></div>`;
 }
 function weekHead(ws, label, kind){
   const keys = weekKeys(ws);
@@ -2009,6 +2036,11 @@ function showDetail(key){
       <input type="time" id="e-wakeplan" value="${wakePlan}" style="width:110px"></span></div>
     <div class="kv"><span class="lbl wake">${ICON_SUN}実際の起床</span><span>${dm('wake')}
       <input type="time" id="e-wake" value="${rec.wakeAt ? hm(new Date(rec.wakeAt)) : ''}" style="width:110px"></span></div>
+    <div class="kv"><span>睡眠時間</span><span>${sleepMinutes(key) === null
+      ? '<span class="muted">—</span>'
+      : fmtDur(sleepMinutes(key)) + (durRank(key)
+          ? ` <span class="frtag fr-${durRank(key)}" style="background:${chipBG(durRank(key))}"></span>`
+          : '')}</span></div>
     <div class="kv"><span>ルーティン</span><span>${rR ? badgeHTML('holo','達成') :
       `<span class="muted">${(rec.routine || []).length} / ${S.tasks.length}</span>`}</span></div>
     <div class="row" style="margin-top:14px">
