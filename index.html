@@ -299,6 +299,9 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 }
 .srow .chip.s{width:25px;height:24px;margin-left:8px}
 .srow .chip.r.big{width:21px;height:21px;margin-left:10px}
+.gembig{display:inline-block;text-align:center}
+.gembig .chip.s{width:64px;height:60px}
+.gemlabel{margin-top:10px;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--fg)}
 .srow .cnt{flex:none;font-size:12px;font-weight:800;color:var(--muted);min-width:46px}
 .srow .cnt em{font-style:normal;font-size:19px;color:var(--fg);margin-left:2px;
   font-variant-numeric:tabular-nums}
@@ -533,6 +536,11 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 
     <div class="card">
       <h2><i>RECORD</i>ルーティンの記録</h2>
+      <div class="calhead">
+        <button class="btn sm" id="rcal-prev">‹</button>
+        <div class="m" id="rcal-label"></div>
+        <button class="btn sm" id="rcal-next">›</button>
+      </div>
       <div id="routine-cal"></div>
       <p class="muted" style="margin:2px 0 0;font-size:11px;line-height:1.6">
         丸バッジ＝その夜のルーティンを全部完了。日付をタップで詳細。
@@ -677,7 +685,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       <h2><i>CALENDAR</i>記録カレンダー</h2>
       <div class="calbar">
         <div class="seg mini" id="cal-seg">
-          <button data-cal="two" class="on">2週</button>
+          <button data-cal="week" class="on">週</button>
           <button data-cal="month">月</button>
         </div>
         <div class="seg mini" id="show-seg">
@@ -1156,8 +1164,8 @@ function renderAlarm(){
     <div class="kv"><span>対象</span><span>${md(parseKey(key))} の夜</span></div>
     <div class="kv"><span class="lbl bed">${ICON_MOON}就寝</span><span>${t(rec.bedAt)}</span></div>
     <div class="kv"><span class="lbl wake">${ICON_SUN}起床</span><span>${t(rec.wakeAt)}</span></div>
-    <div class="center" style="margin-top:12px">${r
-      ? badgeHTML(r, RANK_LABEL[r], true)
+    <div class="center" style="margin-top:14px">${r
+      ? gemHTML(r)
       : '<span class="muted">就寝・起床がそろうとバッジを獲得</span>'}</div>`;
 }
 function renderCountdown(){
@@ -1804,7 +1812,7 @@ if (S.settings.alarmOn){
 }
 
 /* ===================== カレンダー ===================== */
-let calMode = 'two', calShow = 'badge';
+let calMode = 'week', calShow = 'badge';
 let anchor  = weekStart(new Date());        // 2週間表示：下段の週の日曜
 let viewM   = new Date(); viewM.setDate(1);
 
@@ -1823,13 +1831,20 @@ document.querySelectorAll('#show-seg button').forEach(b => {
   };
 });
 $('cal-prev').onclick = () => {
-  if (calMode === 'two') anchor = addDays(anchor, -14); else viewM.setMonth(viewM.getMonth() - 1);
+  if (calMode === 'week') anchor = addDays(anchor, -7); else viewM.setMonth(viewM.getMonth() - 1);
   renderCalendar();
 };
 $('cal-next').onclick = () => {
-  if (calMode === 'two') anchor = addDays(anchor, 14); else viewM.setMonth(viewM.getMonth() + 1);
+  if (calMode === 'week') anchor = addDays(anchor, 7); else viewM.setMonth(viewM.getMonth() + 1);
   renderCalendar();
 };
+/* 「今週」「先週」など、見出しに出す週の呼び名 */
+function weekName(ws){
+  const cur = weekStart(new Date());
+  if (ymd(ws) === ymd(cur)) return '今週';
+  if (ymd(ws) === ymd(addDays(cur, -7))) return '先週';
+  return `${md(ws)}の週`;
+}
 
 const WD = ['日','月','火','水','木','金','土'];
 const ICON_MOON = '<svg viewBox="0 0 10 10" aria-hidden="true">'
@@ -1843,8 +1858,15 @@ const chipBG = rk => ({
   holo:'linear-gradient(115deg,#ff9ad5,#9ad7ff,#9bffc6,#fff59a)',
   gold:'linear-gradient(135deg,#ffe9a8,#d99b1c)',
   silver:'linear-gradient(135deg,#f2f5ff,#94a0bb)',
-  bronze:'linear-gradient(135deg,#f0c49a,#a2622a)'
+  bronze:'linear-gradient(135deg,#f0c49a,#a2622a)',
+  none:'linear-gradient(135deg,var(--line),var(--muted))'
 }[rk] || 'transparent');
+/* 大きく見せるときの宝石バッジ */
+function gemHTML(rank, label){
+  if (!rank) return '<span class="muted">未記録</span>';
+  return `<div class="gembig"><span class="chip s" style="background:${chipBG(rank)}"></span>
+    <div class="gemlabel">${label || RANK_LABEL[rank]}</div></div>`;
+}
 
 function cellHTML(key, label, kind, inMonth = true){
   const rec = S.days[key];
@@ -1891,25 +1913,22 @@ function weekBlock(ws, label, kind){
       cellHTML(k, parseKey(k).getDate(), kind)).join('')}</div>
   </div>`;
 }
-/* ルーティンタブ用の小さなカレンダー（先週・今週の2週間） */
+/* ルーティンタブ用のカレンダー（1週間ずつ） */
+let rAnchor = null;
 function renderRoutineCal(){
-  const cur = weekStart(new Date());
+  if (!rAnchor) rAnchor = weekStart(new Date());
+  $('rcal-label').textContent = `${md(rAnchor)} – ${md(addDays(rAnchor,6))}`;
   const box = $('routine-cal');
-  box.innerHTML = weekBlock(addDays(cur, -7), '先週', 'routine')
-                + weekBlock(cur, '今週', 'routine');
+  box.innerHTML = weekBlock(rAnchor, weekName(rAnchor), 'routine');
   box.querySelectorAll('[data-key]').forEach(c =>
     c.onclick = () => showDetail(c.dataset.key));
 }
+$('rcal-prev').onclick = () => { rAnchor = addDays(rAnchor, -7); renderRoutineCal(); };
+$('rcal-next').onclick = () => { rAnchor = addDays(rAnchor,  7); renderRoutineCal(); };
 function renderCalendar(){
-  if (calMode === 'two'){
-    const w0 = addDays(anchor, -7);
-    const thisWeek = ymd(weekStart(new Date()));
-    const name = ws => ymd(ws) === thisWeek ? '今週'
-      : ymd(ws) === ymd(addDays(weekStart(new Date()), -7)) ? '先週'
-      : `${md(ws)}の週`;
-    $('cal-label').textContent = `${md(w0)} – ${md(addDays(anchor,6))}`;
-    $('cal-body').innerHTML = weekBlock(w0, name(w0), 'sleep')
-                            + weekBlock(anchor, name(anchor), 'sleep');
+  if (calMode === 'week'){
+    $('cal-label').textContent = `${md(anchor)} – ${md(addDays(anchor,6))}`;
+    $('cal-body').innerHTML = weekBlock(anchor, weekName(anchor), 'sleep');
   } else {
     const y = viewM.getFullYear(), m = viewM.getMonth();
     $('cal-label').textContent = `${y}年 ${m + 1}月`;
@@ -1971,8 +1990,8 @@ function showDetail(key){
 
   $('detail').innerHTML = `
     <h3>${key} の夜</h3>
-    <div class="center" style="margin:4px 0 14px">${r
-      ? badgeHTML(r, RANK_LABEL[r], true)
+    <div class="center" style="margin:6px 0 16px">${r
+      ? gemHTML(r)
       : '<span class="muted">就寝・起床がそろうとバッジ獲得</span>'}</div>
     <div class="kv"><span class="lbl bed">${ICON_MOON}就寝予定</span><span><b class="dt">${md(planAt(key,'bed'))}</b>
       <input type="time" id="e-bedplan" value="${bedPlan}" style="width:110px"></span></div>
