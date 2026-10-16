@@ -254,9 +254,10 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 /* ---------- カレンダー ---------- */
 .calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
 .calhead .m{flex:1;text-align:center;font-size:12px;font-weight:700;color:var(--muted)}
-.calbar{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.calbar .m{flex:1;text-align:center;font-size:11px;font-weight:700;color:var(--muted);
+.calbar{display:flex;align-items:center;gap:5px;margin-bottom:10px}
+.calbar .m{flex:1;text-align:center;font-size:11px;font-weight:700;color:var(--fg);
   white-space:nowrap;font-variant-numeric:tabular-nums}
+.btn.sm.nav{flex:none;padding:6px 10px;font-size:13px;line-height:1}
 .seg.mini{margin:0;gap:3px}
 .seg.mini button{flex:0 0 auto;font-size:10px;padding:5px 11px;
   clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)}
@@ -544,10 +545,10 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 
     <div class="card">
       <h2><i>RECORD</i>ルーティンの記録</h2>
-      <div class="calhead">
-        <button class="btn sm" id="rcal-prev">‹</button>
+      <div class="calbar">
+        <button class="btn sm nav" id="rcal-prev">‹</button>
         <div class="m" id="rcal-label"></div>
-        <button class="btn sm" id="rcal-next">›</button>
+        <button class="btn sm nav" id="rcal-next">›</button>
       </div>
       <div id="routine-cal"></div>
       <p class="muted" style="margin:2px 0 0;font-size:11px;line-height:1.6">
@@ -696,15 +697,13 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
           <button data-cal="week" class="on">週</button>
           <button data-cal="month">月</button>
         </div>
+        <button class="btn sm nav" id="cal-prev">‹</button>
         <div class="m" id="cal-label"></div>
+        <button class="btn sm nav" id="cal-next">›</button>
         <div class="seg mini" id="show-seg">
           <button data-show="badge" class="on">バッジ</button>
           <button data-show="time">時刻</button>
         </div>
-      </div>
-      <div class="calhead">
-        <button class="btn sm" id="cal-prev">‹</button>
-        <button class="btn sm" id="cal-next">›</button>
       </div>
       <div id="cal-body"></div>
       <p class="muted" style="margin:6px 0 0;font-size:11px;line-height:1.6">
@@ -1838,6 +1837,13 @@ document.querySelectorAll('#show-seg button').forEach(b => {
     renderCalendar();
   };
 });
+/* 1行に収まるよう短く書く（同じ月なら月を繰り返さない） */
+function rangeLabel(ws){
+  const we = addDays(ws, 6);
+  return ws.getMonth() === we.getMonth()
+    ? `${ws.getMonth() + 1}/${ws.getDate()}–${we.getDate()}`
+    : `${md(ws)}–${md(we)}`;
+}
 $('cal-prev').onclick = () => {
   if (calMode === 'week') anchor = addDays(anchor, -7); else viewM.setMonth(viewM.getMonth() - 1);
   renderCalendar();
@@ -1919,7 +1925,7 @@ function weekBlock(ws, kind){
 let rAnchor = null;
 function renderRoutineCal(){
   if (!rAnchor) rAnchor = weekStart(new Date());
-  $('rcal-label').textContent = `${md(rAnchor)} – ${md(addDays(rAnchor,6))}`;
+  $('rcal-label').textContent = rangeLabel(rAnchor);
   const box = $('routine-cal');
   box.innerHTML = weekBlock(rAnchor, 'routine');
   box.querySelectorAll('[data-key]').forEach(c =>
@@ -1929,11 +1935,11 @@ $('rcal-prev').onclick = () => { rAnchor = addDays(rAnchor, -7); renderRoutineCa
 $('rcal-next').onclick = () => { rAnchor = addDays(rAnchor,  7); renderRoutineCal(); };
 function renderCalendar(){
   if (calMode === 'week'){
-    $('cal-label').textContent = `${md(anchor)} – ${md(addDays(anchor,6))}`;
+    $('cal-label').textContent = rangeLabel(anchor);
     $('cal-body').innerHTML = weekBlock(anchor, 'sleep');
   } else {
     const y = viewM.getFullYear(), m = viewM.getMonth();
-    $('cal-label').textContent = `${y}年 ${m + 1}月`;
+    $('cal-label').textContent = `${y}年${m + 1}月`;
     const first = new Date(y, m, 1), last = new Date(y, m + 1, 0).getDate();
     let cells = '';
     for (let i = 0; i < first.getDay(); i++) cells += '<div class="cell empty"></div>';
