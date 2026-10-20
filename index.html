@@ -284,6 +284,9 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .cell .d{font-size:11px;color:var(--muted);font-weight:700}
 .cell.has .d{color:var(--fg)}
 .chips{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:auto;min-height:18px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:3px;min-height:14px}
+.top .chip.s{width:15px;height:14px;flex:none}
+.top .chip.r{width:9px;height:9px;flex:none}
 .chip{position:relative;overflow:hidden;flex:none}
 /* 就寝・起床セットは宝石のダイヤ（ブリリアントカット）、ルーティンは丸 */
 .chip.s{
@@ -552,6 +555,13 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
+      <h2><i>DAYTIME</i>日中のルーティン</h2>
+      <div class="prog"><i id="dprog-bar"></i></div>
+      <div id="daytasks"></div>
+      <div id="dayday-status" class="center" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card">
       <h2><i>RECORD</i>ルーティンの記録</h2>
       <div class="calbar">
         <button class="btn sm nav" id="rcal-prev">‹</button>
@@ -645,6 +655,11 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
           <div class="grow muted">予備の解除キーワード</div>
           <input type="text" id="qr-text" style="width:120px">
         </div>
+        <div class="row">
+          <div class="grow muted">鳴ってから表示するまで</div>
+          <input type="number" id="fb-min" min="0" max="60" inputmode="numeric" style="width:70px">
+          <span class="muted">分（0で即時）</span>
+        </div>
         <p class="muted" style="margin:8px 0 0;font-size:11px;line-height:1.6">
           カメラの許可を毎回聞かれる場合は、iPhoneの「設定」→「アプリ」→「目覚まし」→「カメラ」を<b>許可</b>にしてください。
         </p>
@@ -684,6 +699,15 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
+      <h2><i>DAYTIME</i>日中のルーティンのタスク</h2>
+      <div id="dtask-edit"></div>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="new-dtask" class="grow" placeholder="例：水を2リットル飲む">
+        <button class="btn" id="add-dtask">追加</button>
+      </div>
+    </div>
+
+    <div class="card">
       <h2><i>THEME</i>テーマ</h2>
       <div class="seg" id="theme-seg" style="margin:0">
         <button data-th="day">DAY</button>
@@ -708,10 +732,6 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
         <button class="btn sm nav" id="cal-prev">‹</button>
         <div class="m" id="cal-label"></div>
         <button class="btn sm nav" id="cal-next">›</button>
-        <div class="seg mini" id="show-seg">
-          <button data-show="badge" class="on">バッジ</button>
-          <button data-show="time">時刻</button>
-        </div>
       </div>
       <div id="cal-body"></div>
       <p class="muted" style="margin:6px 0 0;font-size:11px;line-height:1.6">
@@ -794,7 +814,7 @@ const DEFAULT_STATE = {
     {id:'t3', title:'着替えを準備する'}
   ],
   settings: {bedPlan:'23:00', wakePlan:'07:00', alarmOn:false, qrMode:false, qrText:'あさ',
-             sound:'beep', qrData:'', keepScreen:false, customName:'', theme:'day'},
+             sound:'beep', qrData:'', keepScreen:false, customName:'', theme:'day', fallbackMin:5},
   days: {}   // "YYYY-MM-DD"(夜) -> {bedPlan, wakePlan, bedAt, wakeAt, routine:[taskId], routineAt}
 };
 let S;
@@ -803,6 +823,10 @@ catch(e){ S = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
 S.settings = Object.assign({}, DEFAULT_STATE.settings, S.settings || {});
 S.tasks = S.tasks || [];
 S.days  = S.days  || {};
+S.dayTasks = S.dayTasks || [
+  {id:'d1', title:'スムージーを飲む'}, {id:'d2', title:'ジムに向かう'},
+  {id:'d3', title:'コーヒーを飲む'},  {id:'d4', title:'脚本と演出を学ぶ'}];
+S.dayLog = S.dayLog || {};            // "YYYY-MM-DD"（その日の日付）-> 完了したタスクid
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1089,6 +1113,90 @@ function renderTaskEditor(){
   });
 }
 
+/* ---- 日中のルーティン（日付ごとに完了を記録。判定は 100%=虹 / 90%=金 / 80%=銀） ---- */
+const dayKey  = () => ymd(new Date());
+const dayDone = () => (S.dayLog[dayKey()] || []).filter(id => S.dayTasks.some(t => t.id === id));
+function dayRank(){
+  const total = S.dayTasks.length;
+  if (!total) return null;
+  const p = dayDone().length / total;
+  if (p >= 1)   return 'holo';
+  if (p >= .9)  return 'gold';
+  if (p >= .8)  return 'silver';
+  return null;
+}
+function renderDayRoutine(){
+  const box = $('daytasks'), done = dayDone();
+  box.innerHTML = '';
+  if (!S.dayTasks.length)
+    box.innerHTML = '<p class="muted">タスクがありません。設定タブで追加してください。</p>';
+  S.dayTasks.forEach(t => {
+    const on = done.includes(t.id);
+    const el = document.createElement('div');
+    el.className = 'task' + (on ? ' done' : '') + (t.id === justId ? ' just' : '');
+    el.innerHTML = `<div class="chk">${on ? '✓' : ''}</div><div class="t"></div>`;
+    el.querySelector('.t').textContent = t.title;
+    el.onclick = () => toggleDayTask(t.id);
+    box.appendChild(el);
+  });
+  const total = S.dayTasks.length, n = done.length;
+  $('dprog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
+  const r = dayRank();
+  $('dayday-status').innerHTML = r
+    ? badgeHTML(r, RANK_LABEL[r])
+    : `<span class="muted">${n} / ${total} 完了</span>`;
+}
+function toggleDayTask(id){
+  const k = dayKey(), list = S.dayLog[k] || [];
+  const on = !list.includes(id);
+  S.dayLog[k] = on ? [...list, id] : list.filter(x => x !== id);
+  justId = on ? id : null;
+  clearTimeout(toggleDayTask._t);
+  toggleDayTask._t = setTimeout(() => { justId = null; }, 600);
+  save(); renderAll();
+  if (!on) return;
+  const r = dayRank(), n = dayDone().length, total = S.dayTasks.length;
+  if (r === 'holo'){
+    flash(); fanfare();
+    celebrate('DAY CLEAR！', 'holo', '日中バッジ', '日中のルーティンを全部達成', true);
+  } else {
+    tone(620, .18, 'triangle', .12);
+    note(`日中 <b>${n} / ${total}</b> 完了`);
+  }
+}
+function renderDayTaskEditor(){
+  const box = $('dtask-edit'); box.innerHTML = '';
+  if (!S.dayTasks.length){
+    box.innerHTML = '<p class="muted">タスクがありません。下から追加してください。</p>';
+    return;
+  }
+  S.dayTasks.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'task';
+    el.innerHTML = `<div class="t"></div>
+      <button class="btn sm ghost" data-act="edit">✎</button>
+      <button class="btn sm ghost" data-act="del">✕</button>`;
+    el.querySelector('.t').textContent = t.title;
+    el.querySelector('[data-act=edit]').onclick = () => {
+      const v = prompt('タスク名', t.title);
+      if (v && v.trim()){ t.title = v.trim(); save(); renderAll(); }
+    };
+    el.querySelector('[data-act=del]').onclick = () => {
+      if (confirm(`「${t.title}」を削除しますか？`)){
+        S.dayTasks = S.dayTasks.filter(x => x.id !== t.id); save(); renderAll();
+      }
+    };
+    box.appendChild(el);
+  });
+}
+$('add-dtask').onclick = () => {
+  const i = $('new-dtask'), v = i.value.trim();
+  if (!v) return;
+  S.dayTasks.push({id:'d' + Date.now(), title:v});
+  i.value = ''; save(); renderAll();
+};
+$('new-dtask').onkeydown = e => { if (e.key === 'Enter') $('add-dtask').click(); };
+
 function toggleTask(id){
   const key = nightKey(), rec = day(key, true);
   rec.routine = rec.routine || [];
@@ -1171,6 +1279,7 @@ function renderAlarm(){
   $('bed-plan').value  = st.bedPlan;
   $('wake-plan').value = st.wakePlan;
   $('qr-text').value   = st.qrText;
+  $('fb-min').value    = st.fallbackMin === undefined ? 5 : st.fallbackMin;
   $('alarm-state').textContent  = on ? 'ON' : 'OFF';
   $('toggle-alarm').textContent = on ? 'OFFにする' : 'ONにする';
   $('toggle-alarm').className   = 'btn' + (on ? '' : ' primary');
@@ -1219,13 +1328,32 @@ function renderWarn(){
   $('alarm-warn').innerHTML = w.map(x => `<div>${x}</div>`).join('');
 }
 
-$('bed-plan').onchange  = e => { S.settings.bedPlan  = e.target.value; save(); renderAll(); };
-$('wake-plan').onchange = e => {
-  S.settings.wakePlan = e.target.value; save();
-  if (S.settings.alarmOn){ setTarget(nextWakeTime()); schedule(); }
+/* 予定時刻の変更。過去の夜は変えず、いまから眠る夜（次に来る夜）から適用する。
+   先に既存の記録へ今の予定を固定しておくので、変更が前日分へ波及しない。 */
+function freezePlans(){
+  Object.values(S.days).forEach(r => {
+    if (r.bedPlan === undefined)  r.bedPlan  = S.settings.bedPlan;
+    if (r.wakePlan === undefined) r.wakePlan = S.settings.wakePlan;
+  });
+}
+function setPlan(kind, hhmm){
+  freezePlans();
+  const field = kind === 'bed' ? 'bedPlan' : 'wakePlan';
+  const k = activeNight(), r = day(k, true);
+  const recorded = kind === 'bed' ? r.bedAt : r.wakeAt;
+  if (!recorded) r[field] = hhmm;          // 記録済みの夜の予定は動かさない
+  S.settings[field] = hhmm;                // 今後の夜の既定値
+  save();
+  if (kind === 'wake' && S.settings.alarmOn){ setTarget(nextWakeTime()); schedule(); }
   renderAll();
-};
+}
+$('bed-plan').onchange  = e => setPlan('bed',  e.target.value);
+$('wake-plan').onchange = e => setPlan('wake', e.target.value);
 $('qr-text').onchange   = e => { S.settings.qrText = e.target.value.trim() || 'あさ'; save(); renderAll(); };
+$('fb-min').onchange = e => {
+  S.settings.fallbackMin = Math.max(0, Math.min(60, Number(e.target.value) || 0));
+  save(); renderAlarm();
+};
 $('toggle-alarm').onclick = () => setAlarm(!S.settings.alarmOn);
 $('toggle-qr').onclick    = () => { S.settings.qrMode = !S.settings.qrMode; save(); renderAlarm(); };
 $('toggle-keep').onclick  = () => {
@@ -1648,7 +1776,7 @@ function stopAlarm(){
 
 /* QRで止められないまま5分たったときだけ、予備キーワードを出す。
    最初から出ていると、QRを読みに行く意味がなくなるため。 */
-const FALLBACK_AFTER = 5 * 60 * 1000;
+const fallbackAfter = () => (S.settings.fallbackMin || 0) * 60000;   // 0 = 即時
 function showFallback(){
   const el = $('fallback');
   if (el && el.style.display === 'none'){
@@ -1722,7 +1850,7 @@ $('test-30').onclick = async () => {
 setInterval(() => {
   if (AL.target && !AL.ringing && Date.now() >= AL.target) fire();
   if (AL.ringing && S.settings.qrMode && AL.ringStart
-      && Date.now() - AL.ringStart >= FALLBACK_AFTER) showFallback();
+      && Date.now() - AL.ringStart >= fallbackAfter()) showFallback();
   updateSleepClock();
   if (document.getElementById('v-alarm').classList.contains('on')) renderCountdown();
   applyTheme();                                   // じどう設定のとき時間帯で切り替える
@@ -1844,7 +1972,7 @@ if (S.settings.alarmOn){
 }
 
 /* ===================== カレンダー ===================== */
-let calMode = 'week', calShow = 'badge';
+let calMode = 'week';
 let anchor  = weekStart(new Date());        // 2週間表示：下段の週の日曜
 let viewM   = new Date(); viewM.setDate(1);
 
@@ -1852,13 +1980,6 @@ document.querySelectorAll('#cal-seg button').forEach(b => {
   b.onclick = () => {
     calMode = b.dataset.cal;
     document.querySelectorAll('#cal-seg button').forEach(x => x.classList.toggle('on', x === b));
-    renderCalendar();
-  };
-});
-document.querySelectorAll('#show-seg button').forEach(b => {
-  b.onclick = () => {
-    calShow = b.dataset.show;
-    document.querySelectorAll('#show-seg button').forEach(x => x.classList.toggle('on', x === b));
     renderCalendar();
   };
 });
@@ -1902,32 +2023,25 @@ function gemHTML(rank, label){
 
 function cellHTML(key, label, kind, inMonth = true){
   const rec = S.days[key];
-  const time = kind === 'sleep' && calShow === 'time';
   const has = kind === 'routine'
     ? !!(rec && (rec.routine || []).length)
     : !!(rec && (rec.bedAt || rec.wakeAt));
-  let body;
-  if (time){
-    const t = iso => iso ? hm(new Date(iso)) : '--:--';
-    body = `<div class="tm">
-      <span class="bed${rec && rec.bedAt  ? '' : ' off'}">${ICON_MOON}${t(rec && rec.bedAt)}</span>
-      <span class="wake${rec && rec.wakeAt ? '' : ' off'}">${ICON_SUN}${t(rec && rec.wakeAt)}</span>
-    </div>`;
-  } else if (kind === 'routine'){
-    const r = routineRank(rec);
-    body = `<div class="chips">
-      <div class="chip r ${r ? '' : 'off'}" style="background:${chipBG(r)}"></div></div>`;
-  } else {
-    const s = sleepRank(key);
-    body = `<div class="chips">
-      <div class="chip s ${s && s !== 'none' ? '' : 'off'}" style="background:${chipBG(s)}"></div></div>`;
-  }
   const fr = kind === 'sleep' ? durRank(key) : null;   // 睡眠時間による枠
-  return `<div class="cell${time ? ' time' : ''}${has ? ' has' : ''}${
+  // バッジは日付の横に置く
+  const mark = kind === 'routine'
+    ? `<div class="chip r ${routineRank(rec) ? '' : 'off'}" style="background:${chipBG(routineRank(rec))}"></div>`
+    : `<div class="chip s ${sleepRank(key) && sleepRank(key) !== 'none' ? '' : 'off'}" style="background:${chipBG(sleepRank(key))}"></div>`;
+  // 空いた場所に就寝・起床の時刻を常時表示する
+  const tm = kind === 'sleep'
+    ? `<div class="tm">
+        <span class="bed${rec && rec.bedAt ? '' : ' off'}">${ICON_MOON}${rec && rec.bedAt ? hm(new Date(rec.bedAt)) : '--:--'}</span>
+        <span class="wake${rec && rec.wakeAt ? '' : ' off'}">${ICON_SUN}${rec && rec.wakeAt ? hm(new Date(rec.wakeAt)) : '--:--'}</span>
+      </div>`
+    : '';
+  return `<div class="cell${kind === 'sleep' ? ' time' : ''}${has ? ' has' : ''}${
     key === ymd(new Date()) ? ' today' : ''}${fr ? ' fr fr-' + fr : ''}"
-    data-key="${key}" style="${inMonth ? '' : 'opacity:.35;'}${
-      fr ? 'background:' + chipBG(fr) : ''}">
-    <div class="in"><div class="d">${label}</div>${body}</div></div>`;
+    data-key="${key}" style="${inMonth ? 'opacity:1;' : 'opacity:.35;'}${fr ? 'background:' + chipBG(fr) : ''}">
+    <div class="in"><div class="top"><span class="d">${label}</span>${mark}</div>${tm}</div></div>`;
 }
 function weekHead(ws, label, kind){
   const keys = weekKeys(ws);
@@ -2063,7 +2177,8 @@ function showDetail(key){
 
 /* ===================== 初期化 ===================== */
 function renderAll(){
-  renderRoutine(); renderRoutineCal(); renderTaskEditor(); renderAlarm(); renderCalendar();
+  renderRoutine(); renderDayRoutine(); renderRoutineCal(); renderTaskEditor(); renderDayTaskEditor();
+  renderAlarm(); renderCalendar();
 }
 /* 旧モデル（時間帯で夜を決める方式）では、起床予定が昼過ぎのときに
    記録が隣の夜へ入ってしまっていた。保存済みの記録を正しい夜へ移し替える。 */
