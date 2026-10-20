@@ -132,6 +132,7 @@ section.on>.card:nth-of-type(2){animation-delay:.06s}
 section.on>.card:nth-of-type(3){animation-delay:.12s}
 section.on>.card:nth-of-type(4){animation-delay:.18s}
 section.on>.card:nth-of-type(5){animation-delay:.24s}
+section.on>.card:nth-of-type(n+6){animation-delay:.3s}
 /* 横に動かすと一瞬だけ画面幅が広がってしまうため、縦方向のみで見せる */
 @keyframes cardIn{0%{opacity:0;transform:translateY(16px) scale(.985)}100%{opacity:1;transform:none}}
 
@@ -555,13 +556,6 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   <!-- ============ ルーティン ============ -->
   <section id="v-routine" class="on">
     <div class="card">
-      <h2><i>ROUTINE</i>今夜のルーティン <span id="night-label" class="muted"></span></h2>
-      <div class="prog"><i id="prog-bar"></i></div>
-      <div id="tasks"></div>
-      <div id="routine-status" class="center" style="margin-top:14px"></div>
-    </div>
-
-    <div class="card">
       <h2><i>DAYTIME</i>日中のルーティン</h2>
       <div class="prog"><i id="dprog-bar"></i></div>
       <div id="daytasks"></div>
@@ -569,7 +563,32 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
-      <h2><i>RECORD</i>ルーティンの記録</h2>
+      <h2><i>DAYTIME RECORD</i>日中の記録</h2>
+      <div class="calbar">
+        <button class="btn sm nav" id="dcal-prev">‹</button>
+        <div class="m" id="dcal-label"></div>
+        <button class="btn sm nav" id="dcal-next">›</button>
+      </div>
+      <div id="day-cal"></div>
+      <p class="muted" style="margin:2px 0 0;font-size:11px;line-height:1.6">
+        丸バッジ＝日中のルーティンの達成度（条件は設定で変更）。日付をタップで詳細。
+      </p>
+    </div>
+
+    <div class="card">
+      <h2><i>DAYTIME BADGES</i>日中のバッジ</h2>
+      <div id="dstats"></div>
+    </div>
+
+    <div class="card">
+      <h2><i>NIGHT</i>今夜のルーティン <span id="night-label" class="muted"></span></h2>
+      <div class="prog"><i id="prog-bar"></i></div>
+      <div id="tasks"></div>
+      <div id="routine-status" class="center" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card">
+      <h2><i>NIGHT RECORD</i>夜の記録</h2>
       <div class="calbar">
         <button class="btn sm nav" id="rcal-prev">‹</button>
         <div class="m" id="rcal-label"></div>
@@ -582,7 +601,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
-      <h2><i>BADGES</i>ルーティンのバッジ</h2>
+      <h2><i>NIGHT BADGES</i>夜のバッジ</h2>
       <div id="rstats"></div>
     </div>
   </section>
@@ -710,20 +729,37 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
-      <h2><i>TASKS</i>就寝前ルーティンのタスク</h2>
-      <div id="task-edit"></div>
-      <div class="row" style="margin-top:12px">
-        <input type="text" id="new-task" class="grow" placeholder="例：ストレッチ → 歯みがき">
-        <button class="btn" id="add-task">追加</button>
-      </div>
-    </div>
-
-    <div class="card">
       <h2><i>DAYTIME</i>日中のルーティンのタスク</h2>
       <div id="dtask-edit"></div>
       <div class="row" style="margin-top:12px">
         <input type="text" id="new-dtask" class="grow" placeholder="例：スムージー → ジムに向かう">
         <button class="btn" id="add-dtask">追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><i>DAYTIME BADGES</i>日中のバッジ条件</h2>
+      <div class="muted" id="db-total" style="margin-bottom:10px"></div>
+      <div class="row"><div class="grow">虹（ホログラム）</div>
+        <input type="number" id="db-holo" min="1" max="99" inputmode="numeric" style="width:64px">
+        <span class="muted">件以上</span></div>
+      <div class="row"><div class="grow">金</div>
+        <input type="number" id="db-gold" min="1" max="99" inputmode="numeric" style="width:64px">
+        <span class="muted">件以上</span></div>
+      <div class="row"><div class="grow">銀</div>
+        <input type="number" id="db-silver" min="1" max="99" inputmode="numeric" style="width:64px">
+        <span class="muted">件以上</span></div>
+      <p class="muted" style="margin:10px 0 0;font-size:11px;line-height:1.6">
+        その日に完了した件数で判定します。連結したルーティンは、最後まで終えて1件と数えます。
+      </p>
+    </div>
+
+    <div class="card">
+      <h2><i>NIGHT</i>夜のルーティンのタスク</h2>
+      <div id="task-edit"></div>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="new-task" class="grow" placeholder="例：ストレッチ → 歯みがき">
+        <button class="btn" id="add-task">追加</button>
       </div>
     </div>
 
@@ -835,7 +871,8 @@ const DEFAULT_STATE = {
   ],
   settings: {bedPlan:'23:00', wakePlan:'07:00', alarmOn:false, qrMode:false, qrText:'あさ',
              sound:'beep', qrData:'', qrCodes:[], keepScreen:false, customName:'', theme:'day',
-             fallbackMin:5, badgeQr:true, badgeSec:60},
+             fallbackMin:5, badgeQr:true, badgeSec:60,
+             dayHolo:4, dayGold:3, daySilver:2},
   days: {}   // "YYYY-MM-DD"(夜) -> {bedPlan, wakePlan, bedAt, wakeAt, routine:[taskId], routineAt}
 };
 let S;
@@ -1260,24 +1297,25 @@ $('new-task').onkeydown = e => { if (e.key === 'Enter') $('add-task').click(); }
 
 /* ---- 日中のルーティン（日付ごとに完了を記録。判定は 100%=虹 / 90%=金 / 80%=銀） ---- */
 const dayKey   = () => ymd(new Date());
-const dayCount = () => itemsDone(S.dayTasks, S.dayLog[dayKey()] || []);
-function dayRank(){
-  const total = S.dayTasks.length;
-  if (!total) return null;
-  const p = dayCount() / total;
-  if (p >= 1)   return 'holo';
-  if (p >= .9)  return 'gold';
-  if (p >= .8)  return 'silver';
+const dayCountFor = key => itemsDone(S.dayTasks, S.dayLog[key] || []);
+const dayCount = () => dayCountFor(dayKey());
+/* 日中のバッジは「〇件以上クリア」で決める（件数は設定画面で変更できる） */
+function dayRankFor(key){
+  if (!S.dayLog[key] || !S.dayLog[key].length) return null;
+  const n = dayCountFor(key), st = S.settings;
+  if (n >= st.dayHolo)   return 'holo';
+  if (n >= st.dayGold)   return 'gold';
+  if (n >= st.daySilver) return 'silver';
   return null;
 }
+const dayRank = () => dayRankFor(dayKey());
 function renderDayRoutine(){
   renderTaskList('day', $('daytasks'), toggleDayTask);
   const total = S.dayTasks.length, n = dayCount();
   $('dprog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
   const r = dayRank();
-  $('dayday-status').innerHTML = r
-    ? badgeHTML(r, RANK_LABEL[r])
-    : `<span class="muted">${n} / ${total} 完了</span>`;
+  $('dayday-status').innerHTML = `<span class="muted">${n} / ${total} 完了</span>`
+    + (r ? `<div style="margin-top:8px">${badgeHTML(r, RANK_LABEL[r] + 'バッジ')}</div>` : '');
 }
 function toggleDayTask(t){
   const was = dayRank();
@@ -1288,7 +1326,10 @@ function toggleDayTask(t){
   const r = dayRank(), n = dayCount(), total = S.dayTasks.length;
   if (r === 'holo' && was !== 'holo'){
     flash(); fanfare();
-    celebrate('DAY CLEAR！', 'holo', '日中バッジ', '日中のルーティンを全部達成', true);
+    celebrate('DAY CLEAR！', 'holo', '日中バッジ', `日中のルーティン ${n} 件クリア`, true);
+  } else if (r && r !== was){                       // 金・銀に上がったときは中くらいの演出
+    tone(700, .2, 'triangle', .14);
+    toast('BADGE', `${RANK_LABEL[r]}バッジ　${n} / ${total}`);
   } else if (res.chain && !res.itemDone){
     tone(560 + res.pos * 60, .14, 'triangle', .1);
     note(`<b>${esc(res.step)}</b> 完了　→ 次は <b>${esc(res.next)}</b>`);
@@ -1297,6 +1338,20 @@ function toggleDayTask(t){
     note(`日中 <b>${n} / ${total}</b> 完了`);
   }
 }
+function renderDayBadgeSettings(){
+  const st = S.settings;
+  $('db-total').textContent = `いまのタスクは全 ${S.dayTasks.length} 件です`;
+  $('db-holo').value = st.dayHolo; $('db-gold').value = st.dayGold; $('db-silver').value = st.daySilver;
+}
+[['db-holo','dayHolo'], ['db-gold','dayGold'], ['db-silver','daySilver']].forEach(([id, key]) => {
+  $(id).onchange = e => {
+    S.settings[key] = Math.max(1, Math.min(99, Math.floor(Number(e.target.value)) || 1));
+    save(); renderAll();
+    const st = S.settings;
+    if (!(st.dayHolo >= st.dayGold && st.dayGold >= st.daySilver))
+      note('虹 ≥ 金 ≥ 銀 の順になるよう設定してください');
+  };
+});
 function renderDayTaskEditor(){ renderEditor('day', $('dtask-edit')); }
 $('add-dtask').onclick = () => addTask('day', $('new-dtask'));
 $('new-dtask').onkeydown = e => { if (e.key === 'Enter') $('add-dtask').click(); };
@@ -2169,11 +2224,15 @@ function cellHTML(key, label, kind, inMonth = true){
   const rec = S.days[key];
   const has = kind === 'routine'
     ? !!(rec && (rec.routine || []).length)
-    : !!(rec && (rec.bedAt || rec.wakeAt));
+    : kind === 'day'
+      ? !!(S.dayLog[key] && S.dayLog[key].length)
+      : !!(rec && (rec.bedAt || rec.wakeAt));
   const fr = kind === 'sleep' ? durRank(key) : null;   // 睡眠時間による枠
   // バッジは日付の横に置く
   const mark = kind === 'routine'
     ? `<div class="chip r ${routineRank(rec) ? '' : 'off'}" style="background:${chipBG(routineRank(rec))}"></div>`
+    : kind === 'day'
+    ? `<div class="chip r ${dayRankFor(key) ? '' : 'off'}" style="background:${chipBG(dayRankFor(key))}"></div>`
     : `<div class="chip s ${sleepRank(key) && sleepRank(key) !== 'none' ? '' : 'off'}" style="background:${chipBG(sleepRank(key))}"></div>`;
   // 空いた場所に就寝・起床の時刻を常時表示する
   const tm = kind === 'sleep'
@@ -2207,6 +2266,42 @@ function weekBlock(ws, kind){
   </div>`;
 }
 /* ルーティンタブ用のカレンダー（1週間ずつ） */
+/* 日中のルーティンの記録（夜の記録とは別） */
+let dAnchor = null;
+function renderDayCal(){
+  if (!dAnchor) dAnchor = weekStart(new Date());
+  $('dcal-label').textContent = rangeLabel(dAnchor);
+  const box = $('day-cal');
+  box.innerHTML = weekBlock(dAnchor, 'day');
+  box.querySelectorAll('[data-key]').forEach(c =>
+    c.onclick = () => showDayDetail(c.dataset.key));
+}
+$('dcal-prev').onclick = () => { dAnchor = addDays(dAnchor, -7); renderDayCal(); };
+$('dcal-next').onclick = () => { dAnchor = addDays(dAnchor,  7); renderDayCal(); };
+function showDayDetail(key){
+  const list = S.dayLog[key] || [], r = dayRankFor(key);
+  const n = dayCountFor(key), total = S.dayTasks.length;
+  $('detail').innerHTML = `
+    <h3>${key} 日中のルーティン</h3>
+    <div class="center" style="margin:6px 0 16px">${r
+      ? `<div class="gembig"><span class="chip r" style="width:54px;height:54px;background:${chipBG(r)}"></span>
+          <div class="gemlabel">${RANK_LABEL[r]}バッジ</div></div>`
+      : '<span class="muted">バッジなし</span>'}</div>
+    <div class="kv"><span>クリア</span><span>${n} / ${total} 件</span></div>
+    ${S.dayTasks.map(t => `<div class="kv"><span></span><span class="dt-l" data-id="${t.id}"></span></div>`).join('')}
+    <div class="row" style="margin-top:14px">
+      <button class="btn primary grow" id="d-close">閉じる</button>
+    </div>`;
+  S.dayTasks.forEach(t => {
+    const el = $('detail').querySelector(`.dt-l[data-id="${t.id}"]`);
+    const ok = itemDone(t, list);
+    el.textContent = (ok ? '✓ ' : '— ') + stepsOf(t).join(' → ');
+    if (!ok) el.style.color = 'var(--muted)';
+  });
+  $('ov-detail').classList.add('on');
+  $('d-close').onclick = () => $('ov-detail').classList.remove('on');
+}
+
 let rAnchor = null;
 function renderRoutineCal(){
   if (!rAnchor) rAnchor = weekStart(new Date());
@@ -2243,25 +2338,35 @@ function renderCalendar(){
   renderStats();
 }
 /* 就寝・起床とルーティンは別々に数える */
-function renderStats(){ statsInto('sleep', 'stats'); statsInto('routine', 'rstats'); }
+function renderStats(){
+  statsInto('sleep', 'stats'); statsInto('routine', 'rstats'); statsInto('day', 'dstats');
+}
 function statsInto(kind, elId){
   const c = {holo:0, gold:0, silver:0, bronze:0};
   const bump = r => { if (r && c[r] !== undefined) c[r]++; };
-  const dayRank  = k => kind === 'sleep' ? sleepRank(k) : routineRank(S.days[k]);
+  const rankOfDay = k => kind === 'sleep' ? sleepRank(k)
+    : kind === 'day' ? dayRankFor(k) : routineRank(S.days[k]);
   const weekCount = keys => kind === 'sleep'
     ? keys.filter(achieved).length
     : keys.filter(k => routineRank(S.days[k])).length;
 
-  Object.keys(S.days).forEach(k => bump(dayRank(k)));
-  const seen = new Set();
-  Object.keys(S.days).forEach(k => {
-    const ws = ymd(weekStart(parseKey(k)));
-    if (seen.has(ws)) return; seen.add(ws);
-    bump(weekRank(weekCount(weekKeys(parseKey(ws)))));
-  });
+  if (kind === 'day'){                       // 日中は日ごとの判定だけ（週バッジなし）
+    Object.keys(S.dayLog).forEach(k => bump(dayRankFor(k)));
+  } else {
+    Object.keys(S.days).forEach(k => bump(rankOfDay(k)));
+    const seen = new Set();
+    Object.keys(S.days).forEach(k => {
+      const ws = ymd(weekStart(parseKey(k)));
+      if (seen.has(ws)) return; seen.add(ws);
+      bump(weekRank(weekCount(weekKeys(parseKey(ws)))));
+    });
+  }
 
+  const st = S.settings;
   const COND = kind === 'sleep'
     ? {holo:'予定までに達成', gold:'15分以内', silver:'30分以内', bronze:'45分以内'}
+    : kind === 'day'
+    ? {holo:`${st.dayHolo}件以上`, gold:`${st.dayGold}件以上`, silver:`${st.daySilver}件以上`, bronze:'—'}
     : {holo:'全部完了／週7日', gold:'週6日', silver:'週5日', bronze:'—'};
   const chip = kind === 'sleep' ? 'chip s' : 'chip r big';
   $(elId).innerHTML = ORDER.slice(0,4).map(r =>
@@ -2321,7 +2426,8 @@ function showDetail(key){
 
 /* ===================== 初期化 ===================== */
 function renderAll(){
-  renderRoutine(); renderDayRoutine(); renderRoutineCal(); renderTaskEditor(); renderDayTaskEditor();
+  renderRoutine(); renderDayRoutine(); renderDayCal(); renderRoutineCal();
+  renderTaskEditor(); renderDayTaskEditor(); renderDayBadgeSettings();
   renderAlarm(); renderCalendar();
 }
 /* 旧モデル（時間帯で夜を決める方式）では、起床予定が昼過ぎのときに
