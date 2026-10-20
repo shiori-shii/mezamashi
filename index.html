@@ -647,13 +647,26 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
         <button class="btn" id="toggle-qr">切替</button>
       </div>
       <div id="qr-box" style="display:none">
+        <div id="qr-list"></div>
         <div class="row">
-          <div class="grow muted" id="qr-reg-state"></div>
-          <button class="btn sm" id="qr-register">QRを登録</button>
+          <div class="grow muted">複数登録すると、全部読むまで止まりません</div>
+          <button class="btn sm" id="qr-register">QRを追加</button>
         </div>
         <div class="row">
           <div class="grow muted">予備の解除キーワード</div>
           <input type="text" id="qr-text" style="width:120px">
+        </div>
+        <div class="row" style="margin-top:14px">
+          <div class="grow">
+            <div>QR解除をバッジの条件にする</div>
+            <div class="muted" id="bq-state"></div>
+          </div>
+          <button class="btn" id="toggle-bq">切替</button>
+        </div>
+        <div class="row" id="bq-sec-row">
+          <div class="grow muted">鳴ってから（またはQR1つごとに）</div>
+          <input type="number" id="bq-sec" min="5" max="600" inputmode="numeric" style="width:70px">
+          <span class="muted">秒以内</span>
         </div>
         <div class="row">
           <div class="grow muted">鳴ってから表示するまで</div>
@@ -814,13 +827,16 @@ const DEFAULT_STATE = {
     {id:'t3', title:'着替えを準備する'}
   ],
   settings: {bedPlan:'23:00', wakePlan:'07:00', alarmOn:false, qrMode:false, qrText:'あさ',
-             sound:'beep', qrData:'', keepScreen:false, customName:'', theme:'day', fallbackMin:5},
+             sound:'beep', qrData:'', qrCodes:[], keepScreen:false, customName:'', theme:'day',
+             fallbackMin:5, badgeQr:true, badgeSec:60},
   days: {}   // "YYYY-MM-DD"(夜) -> {bedPlan, wakePlan, bedAt, wakeAt, routine:[taskId], routineAt}
 };
 let S;
 try { S = Object.assign({}, DEFAULT_STATE, JSON.parse(localStorage.getItem(KEY) || '{}')); }
 catch(e){ S = JSON.parse(JSON.stringify(DEFAULT_STATE)); }
 S.settings = Object.assign({}, DEFAULT_STATE.settings, S.settings || {});
+if (!Array.isArray(S.settings.qrCodes)) S.settings.qrCodes = [];
+if (S.settings.qrData && !S.settings.qrCodes.length) S.settings.qrCodes = [S.settings.qrData];
 S.tasks = S.tasks || [];
 S.days  = S.days  || {};
 S.dayTasks = S.dayTasks || [
@@ -946,6 +962,7 @@ function day(key, create = false){
 function sleepRank(key){
   const rec = S.days[key];
   if (!rec || !rec.bedAt || !rec.wakeAt) return null;
+  if (rec.noBadge) return 'none';          // 起床時にQR解除の条件を満たせなかった
   return worse(rankOf(diffMin(key, 'bed')), rankOf(diffMin(key, 'wake')));
 }
 function routineRank(rec){
@@ -1287,7 +1304,12 @@ function renderAlarm(){
     ? `${md(new Date(AL.target))} ${hm(new Date(AL.target))} に鳴ります` : '鳴りません';
   $('qr-state').textContent     = st.qrMode ? 'QRコードを読み取って停止' : 'ボタンで停止';
   $('qr-box').style.display     = st.qrMode ? 'block' : 'none';
-  $('qr-reg-state').textContent = st.qrData ? '登録済み：' + st.qrData.slice(0,18) : 'QR未登録';
+  renderQrList();
+  $('bq-state').textContent = st.badgeQr
+    ? 'QRを制限時間内に読めないとバッジなし'
+    : 'QRなしでもバッジを付与（外出時など）';
+  $('bq-sec-row').style.display = st.badgeQr ? 'flex' : 'none';
+  $('bq-sec').value = st.badgeSec;
   $('keep-state').textContent   = st.keepScreen ? '画面を点けたままにする' : '画面は自動で消える（推奨）';
   document.querySelectorAll('#sound-seg button').forEach(b =>
     b.classList.toggle('on', b.dataset.snd === st.sound));
@@ -1308,6 +1330,24 @@ function renderAlarm(){
     <div class="center" style="margin-top:14px">${r
       ? gemHTML(r)
       : '<span class="muted">就寝・起床がそろうとバッジを獲得</span>'}</div>`;
+}
+function renderQrList(){
+  const box = $('qr-list'), codes = S.settings.qrCodes;
+  box.innerHTML = '';
+  if (!codes.length){
+    box.innerHTML = '<div class="muted" style="margin-bottom:8px">QR未登録（登録するまでは、どのQRでも解除できます）</div>';
+    return;
+  }
+  codes.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'row';
+    el.innerHTML = `<div class="grow muted"></div><button class="btn sm ghost">✕</button>`;
+    el.firstChild.textContent = `QR ${i + 1}：${c.slice(0, 18)}`;
+    el.lastChild.onclick = () => {
+      if (confirm(`QR ${i + 1} を削除しますか？`)){ codes.splice(i, 1); save(); renderAlarm(); }
+    };
+    box.appendChild(el);
+  });
 }
 function renderCountdown(){
   const el = $('countdown');
@@ -1350,6 +1390,11 @@ function setPlan(kind, hhmm){
 $('bed-plan').onchange  = e => setPlan('bed',  e.target.value);
 $('wake-plan').onchange = e => setPlan('wake', e.target.value);
 $('qr-text').onchange   = e => { S.settings.qrText = e.target.value.trim() || 'あさ'; save(); renderAll(); };
+$('toggle-bq').onclick = () => { S.settings.badgeQr = !S.settings.badgeQr; save(); renderAlarm(); };
+$('bq-sec').onchange = e => {
+  S.settings.badgeSec = Math.max(5, Math.min(600, Number(e.target.value) || 60));
+  save(); renderAlarm();
+};
 $('fb-min').onchange = e => {
   S.settings.fallbackMin = Math.max(0, Math.min(60, Number(e.target.value) || 0));
   save(); renderAlarm();
@@ -1422,10 +1467,19 @@ function record(kind){
   const field = kind === 'bed' ? 'bedAt' : 'wakeAt';
   if (rec[field] && !confirm('すでに記録があります。上書きしますか？')) return;
   rec[field] = new Date().toISOString();
+  let why = '';
+  if (kind === 'wake'){
+    why = badgeBlocker();                   // 空なら条件クリア
+    rec.noBadge = !!why;
+    AL.lastStop = null;                     // 1回の鳴動結果は1回の起床記録にだけ使う
+  }
   save(); renderAll();
 
   const r = sleepRank(key);
-  if (r){                                   // セット完成 → バッジ獲得
+  if (r === 'none' && why){                 // QR条件を満たせず、バッジなし
+    tone(300, .3, 'triangle', .12);
+    note(`起床 <b>${hm(new Date(rec.wakeAt))}</b> を記録　${why}`);
+  } else if (r){                            // セット完成 → バッジ獲得
     flash(); fanfare();
     celebrate(kind === 'bed' ? 'おやすみなさい' : 'おはようございます', r,
       RANK_LABEL[r], '就寝・起床セット達成', true);
@@ -1435,6 +1489,17 @@ function record(kind){
       ? `就寝 <b>${hm(new Date(rec.bedAt))}</b> を記録　起床の記録でバッジ獲得`
       : `起床 <b>${hm(new Date(rec.wakeAt))}</b> を記録　就寝の記録でバッジ獲得`);
   }
+}
+/* 起床記録でバッジを付けてよいか。付けられない理由を返す（空文字なら条件クリア）。
+   QR停止モードで、かつ「QR解除をバッジの条件にする」がONのときだけ課す。 */
+function badgeBlocker(){
+  const st = S.settings;
+  if (!st.qrMode || !st.badgeQr) return '';
+  const ls = AL.lastStop;
+  if (!ls) return 'アラームをQRで解除していないためバッジなし';
+  if (ls.via !== 'qr') return '予備キーワードで解除したためバッジなし';
+  if (ls.lost) return `QRを${st.badgeSec}秒以内に読めなかったためバッジなし`;
+  return '';
 }
 $('rec-bed').onclick  = () => record('bed');
 $('rec-wake').onclick = () => record('wake');
@@ -1742,6 +1807,7 @@ function fire(){
   vibrateStart(); notify();
   $('ring-time').textContent = hm(new Date());
   AL.ringStart = AL.ringStart || Date.now();
+  AL.scanned = new Set(); AL.lastScanAt = null; AL.badgeLost = false;
   $('ring-body').innerHTML = S.settings.qrMode
     ? `<button class="btn big primary" id="qr-stop">QRを読み取って停止</button>
        <div id="fallback" style="display:none;margin-top:14px">
@@ -1756,14 +1822,15 @@ function fire(){
   if (S.settings.qrMode){
     $('qr-stop').onclick = scanToStop;
     $('unlock-btn').onclick = () => {
-      if ($('unlock').value.trim() === S.settings.qrText) stopAlarm();
+      if ($('unlock').value.trim() === S.settings.qrText) stopAlarm('key');
       else { $('unlock').value = ''; $('unlock').placeholder = '違います'; }
     };
     scanToStop();                            // 最初から読み取りを開始
-  } else $('stop-btn').onclick = stopAlarm;
+  } else $('stop-btn').onclick = () => stopAlarm('normal');
   renderAlarm();
 }
-function stopAlarm(){
+function stopAlarm(via = 'normal'){
+  if (!AL.isTest) AL.lastStop = {via, lost: AL.badgeLost};   // 起床記録の判定に使う
   AL.ringing = false; AL.ringStart = null;
   vibrateStop(); muteNow(); restoreKeeper(); closeCam();
   $('ring').classList.remove('on');
@@ -1946,15 +2013,36 @@ function releaseCam(){
   $('cam').classList.remove('on');
 }
 $('cam-close').onclick = closeCam;
-$('qr-register').onclick = () => openCam('停止用QRを登録', text => {
-  S.settings.qrData = text; save(); closeCam(); renderAlarm();
-  note('QRコードを登録しました');
-  return true;
-});
+$('qr-register').onclick = () => {
+  if (S.settings.qrCodes.length >= 5){ note('登録できるQRは5つまでです'); return; }
+  openCam('停止用QRを登録', text => {
+    if (S.settings.qrCodes.includes(text)){
+      $('cam-msg').textContent = 'このQRは登録済みです。別のQRを映してください';
+      return false;
+    }
+    S.settings.qrCodes.push(text); save(); closeCam(); renderAlarm();
+    note(`QR ${S.settings.qrCodes.length} を登録しました`);
+    return true;
+  });
+};
 function scanToStop(){
-  openCam('QRを読み取って停止', text => {
-    if (!S.settings.qrData || text === S.settings.qrData){ closeCam(); stopAlarm(); return true; }
-    $('cam-msg').textContent = '登録したQRと違います';
+  const codes = S.settings.qrCodes, need = codes.length;
+  openCam(need > 1 ? `QRを読み取って停止（0/${need}）` : 'QRを読み取って停止', text => {
+    const now = Date.now();
+    if (!need){ closeCam(); stopAlarm('qr'); return true; }       // 未登録ならどのQRでも解除
+    if (!codes.includes(text)){
+      $('cam-msg').textContent = '登録したQRと違います';
+      return false;
+    }
+    if (AL.scanned.has(text)) return false;                       // 読み取り済み（連続フレーム）
+    // 制限時間：鳴り始め、または直前に1つ読んでから〇秒以内に読めなかったらバッジ権を失う
+    const base = AL.lastScanAt ?? AL.ringStart ?? now;
+    if (now - base > S.settings.badgeSec * 1000) AL.badgeLost = true;
+    AL.scanned.add(text); AL.lastScanAt = now;
+    if (AL.scanned.size >= need){ closeCam(); stopAlarm('qr'); return true; }
+    $('cam-title').textContent = `QRを読み取って停止（${AL.scanned.size}/${need}）`;
+    $('cam-msg').textContent = `${AL.scanned.size}/${need} 読み取りました。次のQRを映してください`;
+    note(`<b>${AL.scanned.size}/${need}</b> 解除`);
     return false;
   });
 }
