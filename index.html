@@ -203,6 +203,13 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 }
 .task.done .t{color:var(--muted);text-decoration:line-through}
 .task .t{flex:1;min-width:0;word-break:break-word;font-size:14px}
+/* 連結ルーティン：ステップを矢印でつなぎ、終えた所・次にやる所を分けて見せる */
+.task.chain .t{line-height:1.7}
+.task .st.ok{color:var(--muted);text-decoration:line-through}
+.task .st.next{font-weight:800;color:var(--accent)}
+.task .arr{margin:0 6px;color:var(--muted);font-weight:800}
+.task.chain:not(.done) .chk{color:var(--accent);font-size:10px;font-weight:800;letter-spacing:-.02em}
+.task .chk.part{box-shadow:inset 0 0 0 2px var(--accent)}
 .task.just{animation:rowHit .55s ease-out}
 .task.just .chk{animation:chkHit .5s cubic-bezier(.17,.89,.32,1.3)}
 .task.just .chk::after{
@@ -706,7 +713,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       <h2><i>TASKS</i>就寝前ルーティンのタスク</h2>
       <div id="task-edit"></div>
       <div class="row" style="margin-top:12px">
-        <input type="text" id="new-task" class="grow" placeholder="例：ストレッチをする">
+        <input type="text" id="new-task" class="grow" placeholder="例：ストレッチ → 歯みがき">
         <button class="btn" id="add-task">追加</button>
       </div>
     </div>
@@ -715,7 +722,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       <h2><i>DAYTIME</i>日中のルーティンのタスク</h2>
       <div id="dtask-edit"></div>
       <div class="row" style="margin-top:12px">
-        <input type="text" id="new-dtask" class="grow" placeholder="例：水を2リットル飲む">
+        <input type="text" id="new-dtask" class="grow" placeholder="例：スムージー → ジムに向かう">
         <button class="btn" id="add-dtask">追加</button>
       </div>
     </div>
@@ -967,8 +974,7 @@ function sleepRank(key){
 }
 function routineRank(rec){
   if (!rec || !S.tasks.length) return null;
-  const n = (rec.routine || []).filter(id => S.tasks.some(t => t.id === id)).length;
-  return n >= S.tasks.length ? 'holo' : null;
+  return itemsDone(S.tasks, rec.routine || []) >= S.tasks.length ? 'holo' : null;
 }
 const achieved = key => { const r = sleepRank(key); return !!r && r !== 'none'; };
 /* 実際に眠っていた長さ（就寝から起床まで） */
@@ -1075,25 +1081,144 @@ function routineStreak(){
   while (routineRank(S.days[ymd(d)])){ n++; d = addDays(d, -1); }
   return n;
 }
+/* ===================== ルーティン（夜・日中 共通） =====================
+   タスクは「1ステップ」か「A → B → C の連結ルーティン」のどちらか。
+   連結ルーティンは先頭から順に進め、最後まで終えて1件の完了と数える。
+   完了の記録は、1ステップなら タスクid、連結なら「id:番号」をステップごとに残す
+   （1ステップの形式は従来と同じなので、既存の記録をそのまま使える）。 */
+const stepsOf   = t => (t.steps && t.steps.length > 1) ? t.steps : [t.title];
+const stepKey   = (t, i) => stepsOf(t).length > 1 ? `${t.id}:${i}` : t.id;
+function stepsDoneOf(t, list){                 // 先頭から連続して終えたステップ数
+  const s = stepsOf(t);
+  let n = 0;
+  while (n < s.length && list.includes(stepKey(t, n))) n++;
+  return n;
+}
+const itemDone  = (t, list) => stepsDoneOf(t, list) >= stepsOf(t).length;
+const itemsDone = (tasks, list) => tasks.filter(t => itemDone(t, list)).length;
+const parseSteps = text => text.split(/\s*(?:→|->|＞)\s*/).map(x => x.trim()).filter(Boolean);
+function setSteps(t, steps){
+  if (steps.length > 1){ t.steps = steps; t.title = steps.join(' → '); }
+  else { delete t.steps; t.title = steps[0]; }
+}
+
+const RT = {
+  night: {
+    tasks: () => S.tasks, setTasks: v => { S.tasks = v; },
+    list: () => day(nightKey(), true).routine || [],
+    setList: v => { day(nightKey(), true).routine = v; },
+    prefix: 't',
+  },
+  day: {
+    tasks: () => S.dayTasks, setTasks: v => { S.dayTasks = v; },
+    list: () => S.dayLog[dayKey()] || [],
+    setList: v => { S.dayLog[dayKey()] = v; },
+    prefix: 'd',
+  },
+};
+
+/* タップ1回で1ステップ進める。終わっている件をタップしたら最後のステップを戻す */
+function stepTap(kind, t){
+  const R = RT[kind], list = R.list(), s = stepsOf(t), n = stepsDoneOf(t, list);
+  if (n >= s.length){
+    const k = stepKey(t, s.length - 1);
+    R.setList(list.filter(x => x !== k));
+    return {added:false};
+  }
+  R.setList([...list, stepKey(t, n)]);
+  return {added:true, chain:s.length > 1, step:s[n], next:s[n + 1],
+          itemDone:n + 1 >= s.length, pos:n + 1, len:s.length};
+}
+
+function renderTaskList(kind, box, onTap){
+  const R = RT[kind], tasks = R.tasks(), list = R.list();
+  box.innerHTML = '';
+  if (!tasks.length){
+    box.innerHTML = '<p class="muted">タスクがありません。設定タブで追加してください。</p>';
+    return;
+  }
+  tasks.forEach(t => {
+    const s = stepsOf(t), n = stepsDoneOf(t, list), done = n >= s.length, chain = s.length > 1;
+    const el = document.createElement('div');
+    el.className = 'task' + (done ? ' done' : '') + (chain ? ' chain' : '')
+                 + (t.id === justId ? ' just' : '');
+    el.innerHTML = `<div class="chk${chain && n && !done ? ' part' : ''}">${
+      done ? '✓' : chain ? `${n}/${s.length}` : ''}</div><div class="t"></div>`;
+    const tt = el.querySelector('.t');
+    if (chain){
+      s.forEach((name, i) => {
+        if (i){ const a = document.createElement('span'); a.className = 'arr'; a.textContent = '→'; tt.appendChild(a); }
+        const sp = document.createElement('span');
+        sp.className = 'st' + (i < n ? ' ok' : i === n ? ' next' : '');
+        sp.textContent = name;
+        tt.appendChild(sp);
+      });
+    } else tt.textContent = t.title;
+    el.onclick = () => onTap(t);
+    box.appendChild(el);
+  });
+}
+
+/* 設定タブ側のタスク管理（追加・編集・削除・連結・分割） */
+function renderEditor(kind, box){
+  const R = RT[kind], tasks = R.tasks();
+  box.innerHTML = '';
+  if (!tasks.length){
+    box.innerHTML = '<p class="muted">タスクがありません。下から追加してください。</p>';
+    return;
+  }
+  tasks.forEach((t, i) => {
+    const chain = stepsOf(t).length > 1, last = i === tasks.length - 1;
+    const el = document.createElement('div');
+    el.className = 'task' + (chain ? ' chain' : '');
+    el.innerHTML = `<div class="t"></div>
+      ${last ? '' : '<button class="btn sm ghost" data-act="link">連結</button>'}
+      ${chain ? '<button class="btn sm ghost" data-act="split">分割</button>' : ''}
+      <button class="btn sm ghost" data-act="edit">✎</button>
+      <button class="btn sm ghost" data-act="del">✕</button>`;
+    el.querySelector('.t').textContent = stepsOf(t).join(' → ');
+    const on = (act, fn) => { const b = el.querySelector(`[data-act=${act}]`); if (b) b.onclick = fn; };
+    on('edit', () => {
+      const v = prompt('タスク名（「→」でつなぐと連結ルーティンになります）', stepsOf(t).join(' → '));
+      const steps = v ? parseSteps(v) : [];
+      if (steps.length){ setSteps(t, steps); save(); renderAll(); }
+    });
+    on('link', () => {                          // 下のタスクとつなげて1件にする
+      const nx = tasks[i + 1];
+      setSteps(t, [...stepsOf(t), ...stepsOf(nx)]);
+      R.setTasks(tasks.filter(x => x !== nx));
+      save(); renderAll();
+      note(`<b>${esc(stepsOf(t).join(' → '))}</b> を1つのルーティンにしました`);
+    });
+    on('split', () => {                         // 連結をばらして別々のタスクに戻す
+      const parts = stepsOf(t).map((title, j) =>
+        ({id: j ? R.prefix + Date.now() + '_' + j : t.id, title}));
+      R.setTasks(tasks.flatMap(x => x === t ? parts : [x]));
+      save(); renderAll();
+    });
+    on('del', () => {
+      if (confirm(`「${stepsOf(t).join(' → ')}」を削除しますか？`)){
+        R.setTasks(tasks.filter(x => x !== t)); save(); renderAll();
+      }
+    });
+    box.appendChild(el);
+  });
+}
+function addTask(kind, input){
+  const steps = parseSteps(input.value);
+  if (!steps.length) return;
+  const t = {id: RT[kind].prefix + Date.now()};
+  setSteps(t, steps);
+  RT[kind].tasks().push(t);
+  input.value = ''; save(); renderAll();
+}
+
+/* ---- 就寝前ルーティン ---- */
 function renderRoutine(){
   const key = nightKey(), rec = day(key, true);
   $('night-label').textContent = `（${md(parseKey(key))} の夜）`;
-
-  const box = $('tasks');
-  box.innerHTML = '';
-  if (!S.tasks.length)
-    box.innerHTML = '<p class="muted">タスクがありません。設定タブで追加してください。</p>';
-  S.tasks.forEach(t => {
-    const done = (rec.routine || []).includes(t.id);
-    const el = document.createElement('div');
-    el.className = 'task' + (done ? ' done' : '') + (t.id === justId ? ' just' : '');
-    el.innerHTML = `<div class="chk">${done ? '✓' : ''}</div><div class="t"></div>`;
-    el.querySelector('.t').textContent = t.title;
-    el.onclick = () => toggleTask(t.id);
-    box.appendChild(el);
-  });
-
-  const n = (rec.routine || []).length, total = S.tasks.length;
+  renderTaskList('night', $('tasks'), toggleTask);
+  const n = itemsDone(S.tasks, rec.routine || []), total = S.tasks.length;
   $('prog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
   const streak = routineStreak();
   $('routine-status').innerHTML = (routineRank(rec)
@@ -1101,150 +1226,80 @@ function renderRoutine(){
       : `<span class="muted">${n} / ${total} 完了　あと ${total - n} 個</span>`)
     + (streak ? `<div class="streak" style="margin-top:8px">連続達成 <b>${streak}</b> 日</div>` : '');
 }
+function renderTaskEditor(){ renderEditor('night', $('task-edit')); }
 
-/* 設定タブ側のタスク管理（追加・編集・削除） */
-function renderTaskEditor(){
-  const box = $('task-edit');
-  box.innerHTML = '';
-  if (!S.tasks.length){
-    box.innerHTML = '<p class="muted">タスクがありません。下から追加してください。</p>';
-    return;
-  }
-  S.tasks.forEach(t => {
-    const el = document.createElement('div');
-    el.className = 'task';
-    el.innerHTML = `<div class="t"></div>
-      <button class="btn sm ghost" data-act="edit">✎</button>
-      <button class="btn sm ghost" data-act="del">✕</button>`;
-    el.querySelector('.t').textContent = t.title;
-    el.querySelector('[data-act=edit]').onclick = () => {
-      const v = prompt('タスク名', t.title);
-      if (v && v.trim()){ t.title = v.trim(); save(); renderAll(); }
-    };
-    el.querySelector('[data-act=del]').onclick = () => {
-      if (confirm(`「${t.title}」を削除しますか？`)){
-        S.tasks = S.tasks.filter(x => x.id !== t.id); save(); renderAll();
-      }
-    };
-    box.appendChild(el);
-  });
+function flashJust(id){
+  justId = id;
+  clearTimeout(flashJust._t);
+  flashJust._t = setTimeout(() => { justId = null; }, 600);
 }
+/* 演出の大きさ：ステップ完了＝小、1件完了＝中、全部完了＝大 */
+function toggleTask(t){
+  const rec = day(nightKey(), true);
+  const was = routineRank(rec);
+  const res = stepTap('night', t);
+  const now = routineRank(rec);
+  if (now && !was) rec.routineAt = new Date().toISOString();
+  flashJust(res.added ? t.id : null);
+  save(); renderAll();
+  if (!res.added) return;                           // 戻したときは演出なし
+  const n = itemsDone(S.tasks, rec.routine), total = S.tasks.length;
+  if (now && !was){
+    flash(); fanfare();
+    celebrate('ALL CLEAR！', 'holo', 'ルーティン達成', `連続達成 ${routineStreak()} 日目`, true);
+  } else if (res.chain && !res.itemDone){
+    tone(560 + res.pos * 60, .14, 'triangle', .1);
+    note(`<b>${esc(res.step)}</b> 完了　→ 次は <b>${esc(res.next)}</b>`);
+  } else {
+    tone(620 * Math.pow(1.18, n - 1), .22, 'triangle', .18);
+    toast('CLEAR', `${n} / ${total}　あと ${total - n} 個`);
+  }
+}
+$('add-task').onclick = () => addTask('night', $('new-task'));
+$('new-task').onkeydown = e => { if (e.key === 'Enter') $('add-task').click(); };
 
 /* ---- 日中のルーティン（日付ごとに完了を記録。判定は 100%=虹 / 90%=金 / 80%=銀） ---- */
-const dayKey  = () => ymd(new Date());
-const dayDone = () => (S.dayLog[dayKey()] || []).filter(id => S.dayTasks.some(t => t.id === id));
+const dayKey   = () => ymd(new Date());
+const dayCount = () => itemsDone(S.dayTasks, S.dayLog[dayKey()] || []);
 function dayRank(){
   const total = S.dayTasks.length;
   if (!total) return null;
-  const p = dayDone().length / total;
+  const p = dayCount() / total;
   if (p >= 1)   return 'holo';
   if (p >= .9)  return 'gold';
   if (p >= .8)  return 'silver';
   return null;
 }
 function renderDayRoutine(){
-  const box = $('daytasks'), done = dayDone();
-  box.innerHTML = '';
-  if (!S.dayTasks.length)
-    box.innerHTML = '<p class="muted">タスクがありません。設定タブで追加してください。</p>';
-  S.dayTasks.forEach(t => {
-    const on = done.includes(t.id);
-    const el = document.createElement('div');
-    el.className = 'task' + (on ? ' done' : '') + (t.id === justId ? ' just' : '');
-    el.innerHTML = `<div class="chk">${on ? '✓' : ''}</div><div class="t"></div>`;
-    el.querySelector('.t').textContent = t.title;
-    el.onclick = () => toggleDayTask(t.id);
-    box.appendChild(el);
-  });
-  const total = S.dayTasks.length, n = done.length;
+  renderTaskList('day', $('daytasks'), toggleDayTask);
+  const total = S.dayTasks.length, n = dayCount();
   $('dprog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
   const r = dayRank();
   $('dayday-status').innerHTML = r
     ? badgeHTML(r, RANK_LABEL[r])
     : `<span class="muted">${n} / ${total} 完了</span>`;
 }
-function toggleDayTask(id){
-  const k = dayKey(), list = S.dayLog[k] || [];
-  const on = !list.includes(id);
-  S.dayLog[k] = on ? [...list, id] : list.filter(x => x !== id);
-  justId = on ? id : null;
-  clearTimeout(toggleDayTask._t);
-  toggleDayTask._t = setTimeout(() => { justId = null; }, 600);
+function toggleDayTask(t){
+  const was = dayRank();
+  const res = stepTap('day', t);
+  flashJust(res.added ? t.id : null);
   save(); renderAll();
-  if (!on) return;
-  const r = dayRank(), n = dayDone().length, total = S.dayTasks.length;
-  if (r === 'holo'){
+  if (!res.added) return;
+  const r = dayRank(), n = dayCount(), total = S.dayTasks.length;
+  if (r === 'holo' && was !== 'holo'){
     flash(); fanfare();
     celebrate('DAY CLEAR！', 'holo', '日中バッジ', '日中のルーティンを全部達成', true);
+  } else if (res.chain && !res.itemDone){
+    tone(560 + res.pos * 60, .14, 'triangle', .1);
+    note(`<b>${esc(res.step)}</b> 完了　→ 次は <b>${esc(res.next)}</b>`);
   } else {
     tone(620, .18, 'triangle', .12);
     note(`日中 <b>${n} / ${total}</b> 完了`);
   }
 }
-function renderDayTaskEditor(){
-  const box = $('dtask-edit'); box.innerHTML = '';
-  if (!S.dayTasks.length){
-    box.innerHTML = '<p class="muted">タスクがありません。下から追加してください。</p>';
-    return;
-  }
-  S.dayTasks.forEach(t => {
-    const el = document.createElement('div');
-    el.className = 'task';
-    el.innerHTML = `<div class="t"></div>
-      <button class="btn sm ghost" data-act="edit">✎</button>
-      <button class="btn sm ghost" data-act="del">✕</button>`;
-    el.querySelector('.t').textContent = t.title;
-    el.querySelector('[data-act=edit]').onclick = () => {
-      const v = prompt('タスク名', t.title);
-      if (v && v.trim()){ t.title = v.trim(); save(); renderAll(); }
-    };
-    el.querySelector('[data-act=del]').onclick = () => {
-      if (confirm(`「${t.title}」を削除しますか？`)){
-        S.dayTasks = S.dayTasks.filter(x => x.id !== t.id); save(); renderAll();
-      }
-    };
-    box.appendChild(el);
-  });
-}
-$('add-dtask').onclick = () => {
-  const i = $('new-dtask'), v = i.value.trim();
-  if (!v) return;
-  S.dayTasks.push({id:'d' + Date.now(), title:v});
-  i.value = ''; save(); renderAll();
-};
+function renderDayTaskEditor(){ renderEditor('day', $('dtask-edit')); }
+$('add-dtask').onclick = () => addTask('day', $('new-dtask'));
 $('new-dtask').onkeydown = e => { if (e.key === 'Enter') $('add-dtask').click(); };
-
-function toggleTask(id){
-  const key = nightKey(), rec = day(key, true);
-  rec.routine = rec.routine || [];
-  const was = routineRank(rec), had = rec.routine.includes(id);
-  rec.routine = had ? rec.routine.filter(x => x !== id) : [...rec.routine, id];
-  const now = routineRank(rec);
-  if (now && !was) rec.routineAt = new Date().toISOString();
-  justId = had ? null : id;
-  save(); renderAll();
-  clearTimeout(toggleTask._t);
-  toggleTask._t = setTimeout(() => { justId = null; }, 600);
-
-  if (had) return;                                  // 外したときは演出なし
-  const n = rec.routine.length, total = S.tasks.length;
-  if (now && !was){
-    flash();
-    fanfare();
-    celebrate('ALL CLEAR！', 'holo', 'ルーティン達成',
-      `連続達成 ${routineStreak()} 日目`, true);
-  } else {
-    tone(620 * Math.pow(1.18, n - 1), .22, 'triangle', .18);
-    toast('CLEAR', `${n} / ${total}　あと ${total - n} 個`);
-  }
-}
-$('add-task').onclick = () => {
-  const i = $('new-task'), v = i.value.trim();
-  if (!v) return;
-  S.tasks.push({id:'t' + Date.now(), title:v});
-  i.value = ''; save(); renderAll();
-};
-$('new-task').onkeydown = e => { if (e.key === 'Enter') $('add-task').click(); };
 
 /* ===================== 演出 ===================== */
 function toast(main, sub){
@@ -1891,7 +1946,8 @@ $('sample-add').onclick = () => {
     r.wakePlan = r.wakePlan || S.settings.wakePlan;
     r.bedAt  = new Date(planAt(key, 'bed').getTime()  + d * 60000).toISOString();
     r.wakeAt = new Date(planAt(key, 'wake').getTime() + (i % 3 ? d : d + 20) * 60000).toISOString();
-    if (i % 3 !== 0) r.routine = S.tasks.map(t => t.id);  // 3日に1日はルーティン未達成
+    if (i % 3 !== 0)                                     // 3日に1日はルーティン未達成
+      r.routine = S.tasks.flatMap(t => stepsOf(t).map((_, j) => stepKey(t, j)));
     n++;
   }
   save(); renderAll();
@@ -2244,7 +2300,7 @@ function showDetail(key){
           ? ` <span class="frtag fr-${durRank(key)}" style="background:${chipBG(durRank(key))}"></span>`
           : '')}</span></div>
     <div class="kv"><span>ルーティン</span><span>${rR ? badgeHTML('holo','達成') :
-      `<span class="muted">${(rec.routine || []).length} / ${S.tasks.length}</span>`}</span></div>
+      `<span class="muted">${itemsDone(S.tasks, rec.routine || [])} / ${S.tasks.length}</span>`}</span></div>
     <div class="row" style="margin-top:14px">
       <button class="btn grow" id="d-close">閉じる</button>
       <button class="btn primary grow" id="d-save">保存</button>
