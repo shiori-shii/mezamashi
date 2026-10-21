@@ -100,7 +100,7 @@ nav button{
 nav button.on{color:#fff;background:linear-gradient(118deg,var(--accent2),var(--accent-dk))}
 nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;padding:8px 0 7px;
   min-width:0;white-space:nowrap;letter-spacing:-.02em}
-nav button svg{width:22px;height:22px;flex:none}
+nav button svg{width:26px;height:26px;flex:none}
 nav button.on::after{
   content:"";position:absolute;inset:0;
   background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);
@@ -126,6 +126,7 @@ section.on{display:block}
   background:linear-gradient(180deg,var(--accent2),var(--accent-dk));
   transform:skewX(-12deg);
 }
+.card h2>i:only-child{font-size:12px;letter-spacing:.14em;color:var(--fg)}
 .card h2 i{
   display:block;font-style:normal;font-weight:800;
   font-size:9px;letter-spacing:.2em;color:var(--accent);margin-bottom:1px;
@@ -228,6 +229,10 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 
 .prog{height:9px;background:var(--btn);overflow:hidden;margin:12px 0 10px;
   clip-path:polygon(5px 0,100% 0,calc(100% - 5px) 100%,0 100%)}
+.pdots{display:flex;justify-content:space-between;gap:6px;margin:-4px 3px 12px}
+.pd{width:8px;height:8px;transform:rotate(45deg);border-radius:2px;background:var(--line);
+  transition:background .3s,box-shadow .3s}
+.pd.on{background:linear-gradient(118deg,var(--accent2),var(--accent-dk));box-shadow:0 0 6px rgba(0,164,228,.45)}
 .prog>i{display:block;height:100%;width:0;
   background:repeating-linear-gradient(115deg,rgba(255,255,255,.3) 0 5px,transparent 5px 11px),
              linear-gradient(90deg,var(--accent2),var(--accent-dk));
@@ -235,6 +240,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   animation:stripes .7s linear infinite;
   transition:width .55s cubic-bezier(.17,.89,.32,1)}
 @keyframes stripes{to{background-position:22px 0,0 0}}
+.gemrow{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:800;color:var(--fg)}
 .streak{font-size:12px;color:var(--muted)}
 .streak b{color:var(--gold);font-size:16px}
 
@@ -568,11 +574,11 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 <header>
   <h1><span class="ring"></span></h1>
   <nav>
-    <button data-view="day" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5.2" fill="currentColor" fill-opacity=".22"/><path d="M12 2l1.5 3h-3zM12 22l-1.5-3h3zM2 12l3-1.5v3zM22 12l-3 1.5v-3z" fill="currentColor" stroke="none"/><path d="M5.2 5.2l1.5 1.5M17.3 17.3l1.5 1.5M5.2 18.8l1.5-1.5M17.3 6.7l1.5-1.5"/></svg><span>日中</span></button>
-    <button data-view="night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18.6 14.6A8.2 8.2 0 0 1 8.6 4.6a8.2 8.2 0 1 0 10 10z" fill="currentColor" fill-opacity=".22"/><path d="M17.4 2l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="currentColor" stroke="none"/><path d="M21.4 10.2l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" fill="currentColor" stroke="none"/></svg><span>夜</span></button>
-    <button data-view="alarm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.4" r="7.6" fill="currentColor" fill-opacity=".22"/><circle cx="12" cy="13.4" r="4.6" stroke-width="1.1" stroke-opacity=".55"/><path d="M12 9.6v3.9l2.8 1.7"/><path d="M2.6 8.2a4.4 4.4 0 0 1 4-4.3M21.4 8.2a4.4 4.4 0 0 0-4-4.3" stroke-width="2"/><circle cx="12" cy="13.4" r="1.2" fill="currentColor" stroke="none"/></svg><span>目覚まし</span></button>
-    <button data-view="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 7.2a2 2 0 0 1 2-2h11.4l3.4 3.4v10.2a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".22"/><path d="M3.6 10.6h16.8"/><path d="M8 2.6v4.2M14 2.6v4.2"/><path d="M8 16.2l2.6 2.5 5-5.2" stroke-width="2.1"/></svg><span>カレンダー</span></button>
-    <button data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5h8M17.6 6.5H21M3 12h2.6M12.2 12H21M3 17.5h10M19.6 17.5H21"/><path d="M14.3 3.7l2.8 2.8-2.8 2.8-2.8-2.8z" fill="currentColor" fill-opacity=".22"/><path d="M8.9 9.2l2.8 2.8-2.8 2.8L6.1 12z" fill="currentColor" fill-opacity=".22"/><path d="M16.3 14.7l2.8 2.8-2.8 2.8-2.8-2.8z" fill="currentColor" fill-opacity=".22"/><circle cx="14.3" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="8.9" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="16.3" cy="17.5" r="1" fill="currentColor" stroke="none"/></svg><span>設定</span></button>
+    <button data-view="day" class="on" aria-label="日中"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5.2" fill="currentColor" fill-opacity=".22"/><path d="M12 2l1.5 3h-3zM12 22l-1.5-3h3zM2 12l3-1.5v3zM22 12l-3 1.5v-3z" fill="currentColor" stroke="none"/><path d="M5.2 5.2l1.5 1.5M17.3 17.3l1.5 1.5M5.2 18.8l1.5-1.5M17.3 6.7l1.5-1.5"/></svg></button>
+    <button data-view="night" aria-label="夜"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18.6 14.6A8.2 8.2 0 0 1 8.6 4.6a8.2 8.2 0 1 0 10 10z" fill="currentColor" fill-opacity=".22"/><path d="M17.4 2l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="currentColor" stroke="none"/><path d="M21.4 10.2l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" fill="currentColor" stroke="none"/></svg></button>
+    <button data-view="alarm" aria-label="目覚まし"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.4" r="7.6" fill="currentColor" fill-opacity=".22"/><circle cx="12" cy="13.4" r="4.6" stroke-width="1.1" stroke-opacity=".55"/><path d="M12 9.6v3.9l2.8 1.7"/><path d="M2.6 8.2a4.4 4.4 0 0 1 4-4.3M21.4 8.2a4.4 4.4 0 0 0-4-4.3" stroke-width="2"/><circle cx="12" cy="13.4" r="1.2" fill="currentColor" stroke="none"/></svg></button>
+    <button data-view="calendar" aria-label="カレンダー"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 7.2a2 2 0 0 1 2-2h11.4l3.4 3.4v10.2a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".22"/><path d="M3.6 10.6h16.8"/><path d="M8 2.6v4.2M14 2.6v4.2"/><path d="M8 16.2l2.6 2.5 5-5.2" stroke-width="2.1"/></svg></button>
+    <button data-view="settings" aria-label="設定"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5h8M17.6 6.5H21M3 12h2.6M12.2 12H21M3 17.5h10M19.6 17.5H21"/><path d="M14.3 3.7l2.8 2.8-2.8 2.8-2.8-2.8z" fill="currentColor" fill-opacity=".22"/><path d="M8.9 9.2l2.8 2.8-2.8 2.8L6.1 12z" fill="currentColor" fill-opacity=".22"/><path d="M16.3 14.7l2.8 2.8-2.8 2.8-2.8-2.8z" fill="currentColor" fill-opacity=".22"/><circle cx="14.3" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="8.9" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="16.3" cy="17.5" r="1" fill="currentColor" stroke="none"/></svg></button>
   </nav>
 </header>
 
@@ -580,14 +586,15 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   <!-- ============ ルーティン ============ -->
   <section id="v-day" class="on">
     <div class="card">
-      <h2><i>DAYTIME</i>日中のルーティン</h2>
+      <h2><i>DAYTIME ROUTINE</i></h2>
       <div class="prog"><i id="dprog-bar"></i></div>
+      <div class="pdots" id="dpdots"></div>
       <div id="daytasks"></div>
       <div id="dayday-status" class="center" style="margin-top:14px"></div>
     </div>
 
     <div class="card">
-      <h2><i>DAYTIME RECORD</i>日中の記録</h2>
+      <h2><i>DAYTIME RECORD</i></h2>
       <div class="calbar">
         <button class="btn sm nav" id="dcal-prev">‹</button>
         <div class="m" id="dcal-label"></div>
@@ -595,12 +602,12 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       </div>
       <div id="day-cal"></div>
       <p class="muted" style="margin:2px 0 0;font-size:11px;line-height:1.6">
-        丸バッジ＝日中のルーティンの達成度（条件は設定で変更）。日付をタップで詳細。
+        バッジ＝日中のルーティンの達成度（条件は設定で変更）。日付をタップで詳細。
       </p>
     </div>
 
     <div class="card">
-      <h2><i>DAYTIME BADGES</i>日中のバッジ</h2>
+      <h2><i>DAYTIME BADGES</i></h2>
       <div id="dstats"></div>
     </div>
 
@@ -609,14 +616,15 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   <!-- ============ 夜のルーティン ============ -->
   <section id="v-night">
     <div class="card">
-      <h2><i>NIGHT</i>今夜のルーティン <span id="night-label" class="muted"></span></h2>
+      <h2><i>NIGHT ROUTINE</i> <span id="night-label" class="muted"></span></h2>
       <div class="prog"><i id="prog-bar"></i></div>
+      <div class="pdots" id="pdots"></div>
       <div id="tasks"></div>
       <div id="routine-status" class="center" style="margin-top:14px"></div>
     </div>
 
     <div class="card">
-      <h2><i>NIGHT RECORD</i>夜の記録</h2>
+      <h2><i>NIGHT RECORD</i></h2>
       <div class="calbar">
         <button class="btn sm nav" id="rcal-prev">‹</button>
         <div class="m" id="rcal-label"></div>
@@ -624,12 +632,12 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       </div>
       <div id="routine-cal"></div>
       <p class="muted" style="margin:2px 0 0;font-size:11px;line-height:1.6">
-        丸バッジ＝その夜のルーティンを全部完了。日付をタップで詳細。
+        バッジ＝その夜のルーティンの達成度（条件は設定で変更）。日付をタップで詳細。
       </p>
     </div>
 
     <div class="card">
-      <h2><i>NIGHT BADGES</i>夜のバッジ</h2>
+      <h2><i>NIGHT BADGES</i></h2>
       <div id="rstats"></div>
     </div>
   </section>
@@ -825,7 +833,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   <!-- ============ カレンダー ============ -->
   <section id="v-calendar">
     <div class="card">
-      <h2><i>CALENDAR</i>記録カレンダー</h2>
+      <h2><i>CALENDAR</i></h2>
       <div class="calbar">
         <div class="seg mini" id="cal-seg">
           <button data-cal="week">週</button>
@@ -1305,6 +1313,15 @@ function addTask(kind, input){
 }
 
 /* ---- 就寝前ルーティン ---- */
+/* バッジの行：宝石＋名称 */
+function badgeRowHTML(rank){
+  return `<div class="gemrow">${rgemHTML(rank, 34)}<span>${RANK_LABEL[rank]}バッジ</span></div>`;
+}
+/* 進捗のポイント：タスク1件ごとに1つ。達成した件は光る */
+function renderDots(el, total, n){
+  el.innerHTML = Array.from({length: total}, (_, i) =>
+    `<span class="pd${i < n ? ' on' : ''}"></span>`).join('');
+}
 function renderRoutine(){
   const key = nightKey(), rec = day(key, true);
   $('night-label').textContent = `（${md(parseKey(key))} の夜）`;
@@ -1312,10 +1329,10 @@ function renderRoutine(){
   const n = itemsDone(S.tasks, rec.routine || []), total = S.tasks.length;
   $('prog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
   const streak = routineStreak();
-  $('routine-status').innerHTML = (routineRank(rec)
-      ? badgeHTML(routineRank(rec), RANK_LABEL[routineRank(rec)] + 'バッジ')
-      : `<span class="muted">${n} / ${total} 完了　あと ${total - n} 個</span>`)
-    + (streak ? `<div class="streak" style="margin-top:8px">連続達成 <b>${streak}</b> 日</div>` : '');
+  renderDots($('pdots'), total, n);
+  const rr = routineRank(rec);
+  $('routine-status').innerHTML = (rr ? badgeRowHTML(rr) : '')
+    + (streak ? `<div class="streak" style="margin-top:${rr ? 8 : 0}px">連続達成 <b>${streak}</b> 日</div>` : '');
 }
 function renderTaskEditor(){ renderEditor('night', $('task-edit')); }
 
@@ -1343,7 +1360,7 @@ function toggleTask(t){
     note(`<b>${esc(res.step)}</b> 完了　→ 次は <b>${esc(res.next)}</b>`);
   } else {
     tone(620 * Math.pow(1.18, n - 1), .22, 'triangle', .18);
-    toast('CLEAR', `${n} / ${total}　あと ${total - n} 個`);
+    toast('CLEAR', '');
   }
 }
 $('add-task').onclick = () => addTask('night', $('new-task'));
@@ -1368,8 +1385,8 @@ function renderDayRoutine(){
   const total = S.dayTasks.length, n = dayCount();
   $('dprog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
   const r = dayRank();
-  $('dayday-status').innerHTML = `<span class="muted">${n} / ${total} 完了</span>`
-    + (r ? `<div style="margin-top:8px">${badgeHTML(r, RANK_LABEL[r] + 'バッジ')}</div>` : '');
+  renderDots($('dpdots'), total, n);
+  $('dayday-status').innerHTML = r ? badgeRowHTML(r) : '';
 }
 function toggleDayTask(t){
   const was = dayRank();
@@ -2536,7 +2553,6 @@ function showRoutineDetail(key){
     <div class="kv"><span>バッジ</span><span style="display:inline-flex;align-items:center;gap:8px">${r
       ? `${rgemHTML(r, 30)}<b>${RANK_LABEL[r]}</b>`
       : '<span class="muted">なし</span>'}</span></div>
-    <div class="kv"><span>完了</span><span class="muted">${itemsDone(S.tasks, list)} / ${S.tasks.length}</span></div>
     ${S.tasks.map(t => taskRowHTML(t, list)).join('')}
     <p class="muted" style="font-size:11px;margin:8px 0 0">タップで完了・未完了を切り替えられます</p>
     <div class="row" style="margin-top:14px">
