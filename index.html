@@ -298,8 +298,17 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .top{display:flex;align-items:center;justify-content:space-between;gap:1px;min-height:14px}
 .top .chip.s{width:15px;height:14px;flex:none}
 .top .chip.r{width:8px;height:8px;flex:none}
-.bigbadge{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
-.bigbadge .chip.r{width:24px;height:24px}
+.bigbadge{flex:1;min-height:0;position:relative}
+/* 余白の高さに合わせて自動で縮む（高さを超えて下へはみ出さない） */
+.bigbadge .rgem{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  height:min(100%,22px);width:auto;aspect-ratio:1/1}
+.rgem{display:block;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.28))}
+/* 虹バッジは色を回すと縁まで緑や黄に変わり、他の段階と見分けにくくなるため、
+   色は固定のまま、明るさを呼吸させて動きを出す */
+.rgem.rg-holo{animation:gemglow 3.2s ease-in-out infinite}
+@keyframes gemglow{
+  0%,100%{filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.28)) brightness(1)}
+  50%{filter:drop-shadow(0 1px 3px rgba(190,150,255,.6)) brightness(1.08)}}
 .mks{display:flex;align-items:center;gap:1px;flex:none}
 .mk{display:inline-flex;width:11px;height:11px;flex:none;color:var(--line)}
 .mk svg{width:11px;height:11px}
@@ -336,7 +345,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   background:linear-gradient(180deg,var(--accent2),var(--accent-dk));transform:skewX(-12deg);
 }
 .srow .chip.s{width:25px;height:24px;margin-left:8px}
-.srow .chip.r.big{width:21px;height:21px;margin-left:10px}
+.srow .rgemwrap{display:inline-flex;margin-left:8px;flex:none}
 .gembig{display:inline-block;text-align:center}
 .gembig .chip.s{width:64px;height:60px}
 .gemlabel{margin-top:10px;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--fg)}
@@ -554,6 +563,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="gb-holo" gradientUnits="userSpaceOnUse" x1="6" y1="6" x2="42" y2="42"><stop offset="0%" stop-color="#ffc2ea"/><stop offset="25%" stop-color="#a9dcff"/><stop offset="50%" stop-color="#b9ffd9"/><stop offset="75%" stop-color="#fff4ad"/><stop offset="100%" stop-color="#dcb8ff"/></linearGradient><linearGradient id="gr-holo" gradientUnits="userSpaceOnUse" x1="4" y1="4" x2="44" y2="44"><stop offset="0%" stop-color="#c690e0"/><stop offset="100%" stop-color="#7fb0e0"/></linearGradient><linearGradient id="gb-gold" gradientUnits="userSpaceOnUse" x1="6" y1="6" x2="42" y2="42"><stop offset="0%" stop-color="#fff0b8"/><stop offset="50%" stop-color="#f3c04a"/><stop offset="100%" stop-color="#d99a1c"/></linearGradient><linearGradient id="gr-gold" gradientUnits="userSpaceOnUse" x1="4" y1="4" x2="44" y2="44"><stop offset="0%" stop-color="#c58a12"/><stop offset="100%" stop-color="#9a6608"/></linearGradient><linearGradient id="gb-silver" gradientUnits="userSpaceOnUse" x1="6" y1="6" x2="42" y2="42"><stop offset="0%" stop-color="#fbfcff"/><stop offset="50%" stop-color="#c3cde0"/><stop offset="100%" stop-color="#98a4bd"/></linearGradient><linearGradient id="gr-silver" gradientUnits="userSpaceOnUse" x1="4" y1="4" x2="44" y2="44"><stop offset="0%" stop-color="#8793ad"/><stop offset="100%" stop-color="#5f6b85"/></linearGradient><linearGradient id="gb-bronze" gradientUnits="userSpaceOnUse" x1="6" y1="6" x2="42" y2="42"><stop offset="0%" stop-color="#f9d7b4"/><stop offset="50%" stop-color="#cf8f4c"/><stop offset="100%" stop-color="#a8672c"/></linearGradient><linearGradient id="gr-bronze" gradientUnits="userSpaceOnUse" x1="4" y1="4" x2="44" y2="44"><stop offset="0%" stop-color="#8f5a26"/><stop offset="100%" stop-color="#68401a"/></linearGradient></defs></svg>
 
 <header>
   <h1><span class="ring"></span></h1>
@@ -2287,6 +2297,13 @@ function gemHTML(rank, label){
     <div class="gemlabel">${label || RANK_LABEL[rank]}</div></div>`;
 }
 
+/* ルーティン（日中・夜）用のバッジ：六角形の結晶＋円の紋章＋星。段階ごとに色だけ変える。
+   size を渡すと大きさを固定、渡さなければ CSS（枠に合わせて縮む）で決まる。 */
+const RGEM_BODY = "<g transform=\"rotate(-12 24 24)\">\n  <polygon points=\"24.00,2.50 42.62,13.25 42.62,34.75 24.00,45.50 5.38,34.75 5.38,13.25\" fill=\"url(#gr-RANK)\"/>\n  <polygon points=\"24.00,5.80 39.76,14.90 39.76,33.10 24.00,42.20 8.24,33.10 8.24,14.90\" fill=\"url(#gb-RANK)\"/>\n  <polygon points=\"8.24,14.90 24.00,5.80 39.76,14.90 24.00,24.00\" fill=\"#fff\" fill-opacity=\".34\"/>\n  <polygon points=\"39.76,33.10 24.00,42.20 8.24,33.10 24.00,24.00\" fill=\"#000\" fill-opacity=\".13\"/>\n  <path d=\"M24.00 2.50L24.00 5.80M42.62 13.25L39.76 14.90M42.62 34.75L39.76 33.10M24.00 45.50L24.00 42.20M5.38 34.75L8.24 33.10M5.38 13.25L8.24 14.90\" stroke=\"#fff\" stroke-opacity=\".5\" stroke-width=\".7\" fill=\"none\"/>\n  <polygon points=\"24.00,5.80 39.76,14.90 39.76,33.10 24.00,42.20 8.24,33.10 8.24,14.90\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".55\" stroke-width=\".8\"/>\n</g>\n<circle cx=\"24\" cy=\"24\" r=\"9.6\" fill=\"#fff\" fill-opacity=\".18\" stroke=\"#fff\" stroke-width=\"1.7\"/>\n<polygon points=\"24.00,16.40 24.99,21.60 29.37,18.63 26.40,23.01 31.60,24.00 26.40,24.99 29.37,29.37 24.99,26.40 24.00,31.60 23.01,26.40 18.63,29.37 21.60,24.99 16.40,24.00 21.60,23.01 18.63,18.63 23.01,21.60\" fill=\"#fff\"/>";
+function rgemHTML(rank, size){
+  return `<svg class="rgem rg-${rank}" viewBox="0 0 48 48"${size ? ` style="width:${size}px;height:${size}px"` : ''} aria-hidden="true">${RGEM_BODY.replace(/RANK/g, rank)}</svg>`;
+}
+
 function cellHTML(key, label, kind, inMonth = true){
   const rec = S.days[key];
   const has = kind === 'routine'
@@ -2305,7 +2322,7 @@ function cellHTML(key, label, kind, inMonth = true){
   // 記録が少ない日中・夜は、日付の下の余白に大きなバッジを置く
   const rk = kind === 'routine' ? routineRank(rec) : kind === 'day' ? dayRankFor(key) : null;
   const big = kind === 'sleep' ? ''
-    : `<div class="bigbadge"><div class="chip r ${rk ? '' : 'off'}" style="background:${chipBG(rk)}"></div></div>`;
+    : `<div class="bigbadge">${rk ? rgemHTML(rk) : ''}</div>`;
   const tm = kind === 'sleep'
     ? `<div class="tm">
         <span class="bed${rec && rec.bedAt ? '' : ' off'}">${ICON_MOON}${rec && rec.bedAt ? hm(new Date(rec.bedAt)) : '--:--'}</span>
@@ -2355,7 +2372,7 @@ function showDayDetail(key){
   $('detail').innerHTML = `
     <h3>${md(parseKey(key))} 日中のルーティン</h3>
     <div class="center" style="margin:6px 0 14px">${r
-      ? `<div class="gembig"><span class="chip r" style="width:54px;height:54px;background:${chipBG(r)}"></span>
+      ? `<div class="gembig">${rgemHTML(r, 64)}
           <div class="gemlabel">${RANK_LABEL[r]}バッジ</div></div>`
       : '<span class="muted">バッジなし</span>'}</div>
     <div class="kv"><span>クリア</span><span>${n} / ${total} 件</span></div>
@@ -2450,10 +2467,11 @@ function statsInto(kind, elId){
     : kind === 'day'
     ? {holo:`${st.dayHolo}件以上`, gold:`${st.dayGold}件以上`, silver:`${st.daySilver}件以上`, bronze:'—'}
     : {holo:'全部完了／週7日', gold:'週6日', silver:'週5日', bronze:'—'};
-  const chip = kind === 'sleep' ? 'chip s' : 'chip r big';
   $(elId).innerHTML = ORDER.slice(0,4).map(r =>
     `<div class="srow">
-      <span class="${chip}" style="background:${chipBG(r)}"></span>
+      ${kind === 'sleep'
+        ? `<span class="chip s" style="background:${chipBG(r)}"></span>`
+        : `<span class="rgemwrap">${rgemHTML(r, 26)}</span>`}
       <span class="cnt">×<em>${c[r]}</em></span>
       <span class="cond">${COND[r]}</span>
     </div>`).join('');
@@ -2512,8 +2530,8 @@ function showRoutineDetail(key){
   const rec = S.days[key] || {}, list = rec.routine || [], r = routineRank(rec);
   $('detail').innerHTML = `
     <h3>${md(parseKey(key))} の夜のルーティン</h3>
-    <div class="kv"><span>バッジ</span><span>${r
-      ? badgeHTML(r, RANK_LABEL[r])
+    <div class="kv"><span>バッジ</span><span style="display:inline-flex;align-items:center;gap:8px">${r
+      ? `${rgemHTML(r, 30)}<b>${RANK_LABEL[r]}</b>`
       : '<span class="muted">なし</span>'}</span></div>
     <div class="kv"><span>完了</span><span class="muted">${itemsDone(S.tasks, list)} / ${S.tasks.length}</span></div>
     ${S.tasks.map(t => taskRowHTML(t, list)).join('')}
