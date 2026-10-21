@@ -816,8 +816,8 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       <h2><i>CALENDAR</i>記録カレンダー</h2>
       <div class="calbar">
         <div class="seg mini" id="cal-seg">
-          <button data-cal="week" class="on">週</button>
-          <button data-cal="month">月</button>
+          <button data-cal="week">週</button>
+          <button data-cal="month" class="on">月</button>
         </div>
         <button class="btn sm nav" id="cal-prev">‹</button>
         <div class="m" id="cal-label"></div>
@@ -2236,7 +2236,7 @@ if (S.settings.alarmOn){
 }
 
 /* ===================== カレンダー ===================== */
-let calMode = 'week';
+let calMode = 'month';
 let anchor  = weekStart(new Date());        // 2週間表示：下段の週の日曜
 let viewM   = new Date(); viewM.setDate(1);
 
