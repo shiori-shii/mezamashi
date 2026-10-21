@@ -90,7 +90,7 @@ h1 i{
 }
 h1 b{display:block;text-align:left;font-size:17px;line-height:1.2}
 
-nav{display:flex;gap:5px;max-width:520px;margin:0 auto;padding:0 16px}
+nav{display:flex;gap:3px;max-width:520px;margin:0 auto;padding:0 12px}
 nav button{
   flex:1;padding:11px 2px;border:none;font-family:inherit;font-size:12.5px;font-weight:700;
   background:var(--card);color:var(--muted);cursor:pointer;position:relative;overflow:hidden;
@@ -98,7 +98,8 @@ nav button{
   box-shadow:var(--shadow);transition:color .2s;
 }
 nav button.on{color:#fff;background:linear-gradient(118deg,var(--accent2),var(--accent-dk))}
-nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;padding:8px 2px 7px}
+nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;padding:8px 0 7px;
+  min-width:0;white-space:nowrap;letter-spacing:-.02em}
 nav button svg{width:22px;height:22px;flex:none}
 nav button.on::after{
   content:"";position:absolute;inset:0;
@@ -554,11 +555,11 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 <header>
   <h1><span class="ring"></span></h1>
   <nav>
-    <button data-view="day" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.9 1.9M16.8 16.8l1.9 1.9M5.3 18.7l1.9-1.9M16.8 7.2l1.9-1.9"/></svg><span>日中</span></button>
-    <button data-view="night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></svg><span>夜</span></button>
-    <button data-view="alarm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.6 1.8M4.2 5.2L7 3M19.8 5.2L17 3"/></svg><span>目覚まし</span></button>
-    <button data-view="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="8.5" cy="14.5" r=".9" fill="currentColor"/><circle cx="12" cy="14.5" r=".9" fill="currentColor"/><circle cx="15.5" cy="14.5" r=".9" fill="currentColor"/></svg><span>カレンダー</span></button>
-    <button data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.8l1.6 2.5 2.9-.7.6 2.9 2.7 1.2-1.3 2.6 1.3 2.6-2.7 1.2-.6 2.9-2.9-.7L12 21.2l-1.6-2.5-2.9.7-.6-2.9-2.7-1.2 1.3-2.6-1.3-2.6 2.7-1.2.6-2.9 2.9.7z"/></svg><span>設定</span></button>
+    <button data-view="day" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5.2" fill="currentColor" fill-opacity=".22"/><path d="M12 2l1.5 3h-3zM12 22l-1.5-3h3zM2 12l3-1.5v3zM22 12l-3 1.5v-3z" fill="currentColor" stroke="none"/><path d="M5.2 5.2l1.5 1.5M17.3 17.3l1.5 1.5M5.2 18.8l1.5-1.5M17.3 6.7l1.5-1.5"/></svg><span>日中</span></button>
+    <button data-view="night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18.6 14.6A8.2 8.2 0 0 1 8.6 4.6a8.2 8.2 0 1 0 10 10z" fill="currentColor" fill-opacity=".22"/><path d="M17.4 2l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="currentColor" stroke="none"/><path d="M21.4 10.2l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" fill="currentColor" stroke="none"/></svg><span>夜</span></button>
+    <button data-view="alarm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13.4" r="7.6" fill="currentColor" fill-opacity=".22"/><circle cx="12" cy="13.4" r="4.6" stroke-width="1.1" stroke-opacity=".55"/><path d="M12 9.6v3.9l2.8 1.7"/><path d="M2.6 8.2a4.4 4.4 0 0 1 4-4.3M21.4 8.2a4.4 4.4 0 0 0-4-4.3" stroke-width="2"/><circle cx="12" cy="13.4" r="1.2" fill="currentColor" stroke="none"/></svg><span>目覚まし</span></button>
+    <button data-view="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 7.2a2 2 0 0 1 2-2h11.4l3.4 3.4v10.2a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z" fill="currentColor" fill-opacity=".22"/><path d="M3.6 10.6h16.8"/><path d="M8 2.6v4.2M14 2.6v4.2"/><path d="M8 16.2l2.6 2.5 5-5.2" stroke-width="2.1"/></svg><span>カレンダー</span></button>
+    <button data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6.5h8M17.6 6.5H21M3 12h2.6M12.2 12H21M3 17.5h10M19.6 17.5H21"/><path d="M14.3 3.7l2.8 2.8-2.8 2.8-2.8-2.8z" fill="currentColor" fill-opacity=".22"/><path d="M8.9 9.2l2.8 2.8-2.8 2.8L6.1 12z" fill="currentColor" fill-opacity=".22"/><path d="M16.3 14.7l2.8 2.8-2.8 2.8-2.8-2.8z" fill="currentColor" fill-opacity=".22"/><circle cx="14.3" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="8.9" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="16.3" cy="17.5" r="1" fill="currentColor" stroke="none"/></svg><span>設定</span></button>
   </nav>
 </header>
 
