@@ -277,7 +277,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .wd{text-align:center;font-size:10px;color:var(--muted);padding:2px 0;font-weight:700}
 .cell{
-  aspect-ratio:1/1.1;background:var(--btn);padding:4px;cursor:pointer;
+  aspect-ratio:1/1.1;background:var(--btn);padding:3px;cursor:pointer;
   display:flex;flex-direction:column;min-width:0;overflow:hidden;
   clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%);
   transition:box-shadow .2s;
@@ -295,12 +295,12 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .cell .d{font-size:11px;color:var(--muted);font-weight:700}
 .cell.has .d{color:var(--fg)}
 .chips{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:auto;min-height:18px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:3px;min-height:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:1px;min-height:14px}
 .top .chip.s{width:15px;height:14px;flex:none}
-.top .chip.r{width:9px;height:9px;flex:none}
-.mks{display:flex;align-items:center;gap:3px;flex:none}
-.mk{display:inline-flex;width:13px;height:13px;flex:none;color:var(--line)}
-.mk svg{width:13px;height:13px}
+.top .chip.r{width:8px;height:8px;flex:none}
+.mks{display:flex;align-items:center;gap:1px;flex:none}
+.mk{display:inline-flex;width:11px;height:11px;flex:none;color:var(--line)}
+.mk svg{width:11px;height:11px}
 .mk.on.day{color:var(--gold)}
 .mk.on.night{color:#8a9bf5}
 .chip{position:relative;overflow:hidden;flex:none}
