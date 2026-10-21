@@ -98,6 +98,8 @@ nav button{
   box-shadow:var(--shadow);transition:color .2s;
 }
 nav button.on{color:#fff;background:linear-gradient(118deg,var(--accent2),var(--accent-dk))}
+nav button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;padding:8px 2px 7px}
+nav button svg{width:22px;height:22px;flex:none}
 nav button.on::after{
   content:"";position:absolute;inset:0;
   background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.5) 50%,transparent 70%);
@@ -295,6 +297,10 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .top{display:flex;align-items:center;justify-content:space-between;gap:3px;min-height:14px}
 .top .chip.s{width:15px;height:14px;flex:none}
 .top .chip.r{width:9px;height:9px;flex:none}
+.mk{display:inline-flex;width:13px;height:13px;flex:none;color:var(--line)}
+.mk svg{width:13px;height:13px}
+.mk.on.day{color:var(--gold)}
+.mk.on.night{color:#8a9bf5}
 .chip{position:relative;overflow:hidden;flex:none}
 /* 就寝・起床セットは宝石のダイヤ（ブリリアントカット）、ルーティンは丸 */
 .chip.s{
@@ -386,6 +392,9 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .kv .bed  svg{color:#8a9bf5}
 .kv .wake svg{color:var(--gold)}
 .kv .dt{font-size:11px;color:var(--muted);font-weight:700;margin-right:5px}
+.kv.tap{cursor:pointer}
+.kv.tap>span.tt{color:var(--fg);flex:1;min-width:0;font-weight:700}
+.kv.tap .ck{font-weight:800;color:var(--accent);flex:none}
 
 /* ---------- アラーム設定 ---------- */
 .cd{
@@ -543,18 +552,19 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 <body>
 
 <header>
-  <h1><span class="ring"></span><span><i>HOLOGRAM ALARM</i><b>ホログラム目覚まし</b></span></h1>
+  <h1><span class="ring"></span></h1>
   <nav>
-    <button data-view="routine" class="on">ルーティン</button>
-    <button data-view="alarm">目覚まし</button>
-    <button data-view="calendar">カレンダー</button>
-    <button data-view="settings">設定</button>
+    <button data-view="day" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.9 1.9M16.8 16.8l1.9 1.9M5.3 18.7l1.9-1.9M16.8 7.2l1.9-1.9"/></svg><span>日中</span></button>
+    <button data-view="night"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1z"/></svg><span>夜</span></button>
+    <button data-view="alarm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.6 1.8M4.2 5.2L7 3M19.8 5.2L17 3"/></svg><span>目覚まし</span></button>
+    <button data-view="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="8.5" cy="14.5" r=".9" fill="currentColor"/><circle cx="12" cy="14.5" r=".9" fill="currentColor"/><circle cx="15.5" cy="14.5" r=".9" fill="currentColor"/></svg><span>カレンダー</span></button>
+    <button data-view="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.8l1.6 2.5 2.9-.7.6 2.9 2.7 1.2-1.3 2.6 1.3 2.6-2.7 1.2-.6 2.9-2.9-.7L12 21.2l-1.6-2.5-2.9.7-.6-2.9-2.7-1.2 1.3-2.6-1.3-2.6 2.7-1.2.6-2.9 2.9.7z"/></svg><span>設定</span></button>
   </nav>
 </header>
 
 <main>
   <!-- ============ ルーティン ============ -->
-  <section id="v-routine" class="on">
+  <section id="v-day" class="on">
     <div class="card">
       <h2><i>DAYTIME</i>日中のルーティン</h2>
       <div class="prog"><i id="dprog-bar"></i></div>
@@ -580,6 +590,10 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       <div id="dstats"></div>
     </div>
 
+  </section>
+
+  <!-- ============ 夜のルーティン ============ -->
+  <section id="v-night">
     <div class="card">
       <h2><i>NIGHT</i>今夜のルーティン <span id="night-label" class="muted"></span></h2>
       <div class="prog"><i id="prog-bar"></i></div>
@@ -631,6 +645,10 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       <div class="row">
         <div class="grow muted">起床予定</div>
         <input type="time" id="wake-plan" style="width:130px">
+      </div>
+      <div class="row">
+        <div class="grow muted">総睡眠時間（予定）</div>
+        <b id="plan-sleep" style="font-size:15px"></b>
       </div>
     </div>
 
@@ -755,6 +773,20 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
+      <h2><i>NIGHT BADGES</i>夜のバッジ条件</h2>
+      <div class="muted" id="nb-total" style="margin-bottom:10px"></div>
+      <div class="row"><div class="grow">虹（ホログラム）</div>
+        <input type="number" id="nb-holo" min="0" max="99" inputmode="numeric" style="width:64px">
+        <span class="muted">件以上（0＝全部）</span></div>
+      <div class="row"><div class="grow">金</div>
+        <input type="number" id="nb-gold" min="0" max="99" inputmode="numeric" style="width:64px">
+        <span class="muted">件以上（0＝なし）</span></div>
+      <div class="row"><div class="grow">銀</div>
+        <input type="number" id="nb-silver" min="0" max="99" inputmode="numeric" style="width:64px">
+        <span class="muted">件以上（0＝なし）</span></div>
+    </div>
+
+    <div class="card">
       <h2><i>NIGHT</i>夜のルーティンのタスク</h2>
       <div id="task-edit"></div>
       <div class="row" style="margin-top:12px">
@@ -872,7 +904,8 @@ const DEFAULT_STATE = {
   settings: {bedPlan:'23:00', wakePlan:'07:00', alarmOn:false, qrMode:false, qrText:'あさ',
              sound:'beep', qrData:'', qrCodes:[], keepScreen:false, customName:'', theme:'day',
              fallbackMin:5, badgeQr:true, badgeSec:60,
-             dayHolo:4, dayGold:3, daySilver:2},
+             dayHolo:4, dayGold:3, daySilver:2,
+             nightHolo:0, nightGold:0, nightSilver:0},
   days: {}   // "YYYY-MM-DD"(夜) -> {bedPlan, wakePlan, bedAt, wakeAt, routine:[taskId], routineAt}
 };
 let S;
@@ -1009,9 +1042,15 @@ function sleepRank(key){
   if (rec.noBadge) return 'none';          // 起床時にQR解除の条件を満たせなかった
   return worse(rankOf(diffMin(key, 'bed')), rankOf(diffMin(key, 'wake')));
 }
+/* 夜のバッジ。0 の設定は「全部」（虹）または「なし」（金・銀）を意味する */
 function routineRank(rec){
   if (!rec || !S.tasks.length) return null;
-  return itemsDone(S.tasks, rec.routine || []) >= S.tasks.length ? 'holo' : null;
+  const n = itemsDone(S.tasks, rec.routine || []), total = S.tasks.length, st = S.settings;
+  if (!n) return null;
+  if (n >= Math.min(st.nightHolo || total, total)) return 'holo';
+  if (st.nightGold && n >= st.nightGold) return 'gold';
+  if (st.nightSilver && n >= st.nightSilver) return 'silver';
+  return null;
 }
 const achieved = key => { const r = sleepRank(key); return !!r && r !== 'none'; };
 /* 実際に眠っていた長さ（就寝から起床まで） */
@@ -1142,27 +1181,28 @@ function setSteps(t, steps){
 const RT = {
   night: {
     tasks: () => S.tasks, setTasks: v => { S.tasks = v; },
-    list: () => day(nightKey(), true).routine || [],
-    setList: v => { day(nightKey(), true).routine = v; },
+    list: (k = nightKey()) => day(k, true).routine || [],
+    setList: (v, k = nightKey()) => { day(k, true).routine = v; },
     prefix: 't',
   },
   day: {
     tasks: () => S.dayTasks, setTasks: v => { S.dayTasks = v; },
-    list: () => S.dayLog[dayKey()] || [],
-    setList: v => { S.dayLog[dayKey()] = v; },
+    list: (k = dayKey()) => S.dayLog[k] || [],
+    setList: (v, k = dayKey()) => { S.dayLog[k] = v; },
     prefix: 'd',
   },
 };
 
-/* タップ1回で1ステップ進める。終わっている件をタップしたら最後のステップを戻す */
-function stepTap(kind, t){
-  const R = RT[kind], list = R.list(), s = stepsOf(t), n = stepsDoneOf(t, list);
+/* タップ1回で1ステップ進める（keyを渡すと、その日付の記録を変える）。
+   完了済みのものをタップしたら、連結の全ステップをまとめて未完了に戻す。 */
+function stepTap(kind, t, key){
+  const R = RT[kind], list = R.list(key), s = stepsOf(t), n = stepsDoneOf(t, list);
   if (n >= s.length){
-    const k = stepKey(t, s.length - 1);
-    R.setList(list.filter(x => x !== k));
+    const mine = s.map((_, i) => stepKey(t, i));
+    R.setList(list.filter(x => !mine.includes(x)), key);
     return {added:false};
   }
-  R.setList([...list, stepKey(t, n)]);
+  R.setList([...list, stepKey(t, n)], key);
   return {added:true, chain:s.length > 1, step:s[n], next:s[n + 1],
           itemDone:n + 1 >= s.length, pos:n + 1, len:s.length};
 }
@@ -1259,7 +1299,7 @@ function renderRoutine(){
   $('prog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
   const streak = routineStreak();
   $('routine-status').innerHTML = (routineRank(rec)
-      ? badgeHTML('holo','ルーティン達成')
+      ? badgeHTML(routineRank(rec), RANK_LABEL[routineRank(rec)] + 'バッジ')
       : `<span class="muted">${n} / ${total} 完了　あと ${total - n} 個</span>`)
     + (streak ? `<div class="streak" style="margin-top:8px">連続達成 <b>${streak}</b> 日</div>` : '');
 }
@@ -1342,6 +1382,8 @@ function renderDayBadgeSettings(){
   const st = S.settings;
   $('db-total').textContent = `いまのタスクは全 ${S.dayTasks.length} 件です`;
   $('db-holo').value = st.dayHolo; $('db-gold').value = st.dayGold; $('db-silver').value = st.daySilver;
+  $('nb-total').textContent = `いまのタスクは全 ${S.tasks.length} 件です（0＝全部／なし）`;
+  $('nb-holo').value = st.nightHolo; $('nb-gold').value = st.nightGold; $('nb-silver').value = st.nightSilver;
 }
 [['db-holo','dayHolo'], ['db-gold','dayGold'], ['db-silver','daySilver']].forEach(([id, key]) => {
   $(id).onchange = e => {
@@ -1350,6 +1392,12 @@ function renderDayBadgeSettings(){
     const st = S.settings;
     if (!(st.dayHolo >= st.dayGold && st.dayGold >= st.daySilver))
       note('虹 ≥ 金 ≥ 銀 の順になるよう設定してください');
+  };
+});
+[['nb-holo','nightHolo'], ['nb-gold','nightGold'], ['nb-silver','nightSilver']].forEach(([id, key]) => {
+  $(id).onchange = e => {
+    S.settings[key] = Math.max(0, Math.min(99, Math.floor(Number(e.target.value)) || 0));
+    save(); renderAll();
   };
 });
 function renderDayTaskEditor(){ renderEditor('day', $('dtask-edit')); }
@@ -1405,6 +1453,9 @@ function renderAlarm(){
   const st = S.settings, on = st.alarmOn;
   $('bed-plan').value  = st.bedPlan;
   $('wake-plan').value = st.wakePlan;
+  { const m = t => { const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; };
+    let d = m(st.wakePlan) - m(st.bedPlan); if (d <= 0) d += 1440;
+    $('plan-sleep').textContent = `${Math.floor(d / 60)}時間${d % 60}分`; }
   $('qr-text').value   = st.qrText;
   $('fb-min').value    = st.fallbackMin === undefined ? 5 : st.fallbackMin;
   $('alarm-state').textContent  = on ? 'ON' : 'OFF';
@@ -1458,6 +1509,17 @@ function renderQrList(){
     };
     box.appendChild(el);
   });
+}
+/* 鳴動中、QRでバッジを取るまでの残り秒数を出す。読み取るたびに数え直す */
+function renderQrCd(){
+  const el = $('qr-cd');
+  if (!el || !AL.ringing) return;
+  const base = AL.lastScanAt ?? AL.ringStart;
+  if (!base) return;
+  const left = Math.ceil(S.settings.badgeSec - (Date.now() - base) / 1000);
+  el.innerHTML = AL.badgeLost ? 'バッジは対象外になりました'
+    : left > 0 ? `バッジまで あと <b>${left}</b> 秒`
+    : '時間切れ：この後の読み取りはバッジなし';
 }
 function renderCountdown(){
   const el = $('countdown');
@@ -1580,7 +1642,7 @@ function record(kind){
   let why = '';
   if (kind === 'wake'){
     why = badgeBlocker();                   // 空なら条件クリア
-    rec.noBadge = !!why;
+    rec.noBadge = why || null;
     AL.lastStop = null;                     // 1回の鳴動結果は1回の起床記録にだけ使う
   }
   save(); renderAll();
@@ -1919,7 +1981,7 @@ function fire(){
   AL.ringStart = AL.ringStart || Date.now();
   AL.scanned = new Set(); AL.lastScanAt = null; AL.badgeLost = false;
   $('ring-body').innerHTML = S.settings.qrMode
-    ? `<button class="btn big primary" id="qr-stop">QRを読み取って停止</button>
+    ? `${S.settings.badgeQr ? '<div class="cd" id="qr-cd" style="display:block;margin-bottom:12px"></div>' : ''}<button class="btn big primary" id="qr-stop">QRを読み取って停止</button>
        <div id="fallback" style="display:none;margin-top:14px">
          <div class="muted" style="margin-bottom:6px">QRが読めないとき</div>
          <div class="row">
@@ -2030,6 +2092,7 @@ setInterval(() => {
   if (AL.ringing && S.settings.qrMode && AL.ringStart
       && Date.now() - AL.ringStart >= fallbackAfter()) showFallback();
   updateSleepClock();
+  renderQrCd();
   if (document.getElementById('v-alarm').classList.contains('on')) renderCountdown();
   applyTheme();                                   // じどう設定のとき時間帯で切り替える
 }, 1000);
@@ -2230,9 +2293,9 @@ function cellHTML(key, label, kind, inMonth = true){
   const fr = kind === 'sleep' ? durRank(key) : null;   // 睡眠時間による枠
   // バッジは日付の横に置く
   const mark = kind === 'routine'
-    ? `<div class="chip r ${routineRank(rec) ? '' : 'off'}" style="background:${chipBG(routineRank(rec))}"></div>`
+    ? `<span class="mk night${routineRank(rec) ? ' on' : ''}">${ICON_MOON}</span>`
     : kind === 'day'
-    ? `<div class="chip r ${dayRankFor(key) ? '' : 'off'}" style="background:${chipBG(dayRankFor(key))}"></div>`
+    ? `<span class="mk day${dayRankFor(key) ? ' on' : ''}">${ICON_SUN}</span>`
     : `<div class="chip s ${sleepRank(key) && sleepRank(key) !== 'none' ? '' : 'off'}" style="background:${chipBG(sleepRank(key))}"></div>`;
   // 空いた場所に就寝・起床の時刻を常時表示する
   const tm = kind === 'sleep'
@@ -2282,24 +2345,35 @@ function showDayDetail(key){
   const list = S.dayLog[key] || [], r = dayRankFor(key);
   const n = dayCountFor(key), total = S.dayTasks.length;
   $('detail').innerHTML = `
-    <h3>${key} 日中のルーティン</h3>
-    <div class="center" style="margin:6px 0 16px">${r
+    <h3>${md(parseKey(key))} 日中のルーティン</h3>
+    <div class="center" style="margin:6px 0 14px">${r
       ? `<div class="gembig"><span class="chip r" style="width:54px;height:54px;background:${chipBG(r)}"></span>
           <div class="gemlabel">${RANK_LABEL[r]}バッジ</div></div>`
       : '<span class="muted">バッジなし</span>'}</div>
     <div class="kv"><span>クリア</span><span>${n} / ${total} 件</span></div>
-    ${S.dayTasks.map(t => `<div class="kv"><span></span><span class="dt-l" data-id="${t.id}"></span></div>`).join('')}
+    ${S.dayTasks.map(t => taskRowHTML(t, list)).join('')}
+    <p class="muted" style="font-size:11px;margin:8px 0 0">タップで完了・未完了を切り替えられます</p>
     <div class="row" style="margin-top:14px">
       <button class="btn primary grow" id="d-close">閉じる</button>
     </div>`;
-  S.dayTasks.forEach(t => {
-    const el = $('detail').querySelector(`.dt-l[data-id="${t.id}"]`);
-    const ok = itemDone(t, list);
-    el.textContent = (ok ? '✓ ' : '— ') + stepsOf(t).join(' → ');
-    if (!ok) el.style.color = 'var(--muted)';
-  });
+  bindTaskRows('day', key);
   $('ov-detail').classList.add('on');
   $('d-close').onclick = () => $('ov-detail').classList.remove('on');
+}
+/* 詳細画面のタスク1行。連結ならステップの進み具合も出す */
+function taskRowHTML(t, list){
+  const s = stepsOf(t), n = stepsDoneOf(t, list);
+  const mark = n >= s.length ? '✓' : n ? `${n}/${s.length}` : '—';
+  return `<div class="kv tap" data-tid="${t.id}"><span class="tt">${esc(s.join(' → '))}</span><span class="ck">${mark}</span></div>`;
+}
+function bindTaskRows(kind, key){
+  $('detail').querySelectorAll('.kv.tap').forEach(el => el.onclick = () => {
+    const t = RT[kind].tasks().find(x => x.id === el.dataset.tid);
+    if (!t) return;
+    stepTap(kind, t, key);
+    save(); renderAll();
+    if (kind === 'day') showDayDetail(key); else showDetail(key);
+  });
 }
 
 let rAnchor = null;
@@ -2404,14 +2478,17 @@ function showDetail(key){
       : fmtDur(sleepMinutes(key)) + (durRank(key)
           ? ` <span class="frtag fr-${durRank(key)}" style="background:${chipBG(durRank(key))}"></span>`
           : '')}</span></div>
-    <div class="kv"><span>ルーティン</span><span>${rR ? badgeHTML('holo','達成') :
-      `<span class="muted">${itemsDone(S.tasks, rec.routine || [])} / ${S.tasks.length}</span>`}</span></div>
+    ${rec.noBadge ? `<div class="kv"><span>バッジ</span><span class="muted">${esc(typeof rec.noBadge === 'string' ? rec.noBadge : 'バッジなし')}</span></div>` : ''}
+    <div class="kv"><span>夜のルーティン</span><span class="muted">${itemsDone(S.tasks, rec.routine || [])} / ${S.tasks.length}</span></div>
+    ${S.tasks.map(t => taskRowHTML(t, rec.routine || [])).join('')}
+    <p class="muted" style="font-size:11px;margin:8px 0 0">タップで完了・未完了を切り替えられます</p>
     <div class="row" style="margin-top:14px">
       <button class="btn grow" id="d-close">閉じる</button>
       <button class="btn primary grow" id="d-save">保存</button>
     </div>`;
   $('ov-detail').classList.add('on');
   $('d-close').onclick = () => $('ov-detail').classList.remove('on');
+  bindTaskRows('night', key);
   $('d-save').onclick = () => {
     const rr = day(key, true);
     // 予定を先に確定させてから実績を変換する（予定の位置を基準に日付が決まるため）
