@@ -298,6 +298,8 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .top{display:flex;align-items:center;justify-content:space-between;gap:1px;min-height:14px}
 .top .chip.s{width:15px;height:14px;flex:none}
 .top .chip.r{width:8px;height:8px;flex:none}
+.bigbadge{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+.bigbadge .chip.r{width:24px;height:24px}
 .mks{display:flex;align-items:center;gap:1px;flex:none}
 .mk{display:inline-flex;width:11px;height:11px;flex:none;color:var(--line)}
 .mk svg{width:11px;height:11px}
@@ -2295,17 +2297,21 @@ function cellHTML(key, label, kind, inMonth = true){
   const fr = kind === 'sleep' ? durRank(key) : null;   // 睡眠時間による枠
   // バッジは日付の横に置く
   const mark = kind === 'routine'
-    ? `<div class="mks"><span class="mk night${routineRank(rec) ? ' on' : ''}">${ICON_MOON}</span><div class="chip r ${routineRank(rec) ? '' : 'off'}" style="background:${chipBG(routineRank(rec))}"></div></div>`
+    ? `<span class="mk night${routineRank(rec) ? ' on' : ''}">${ICON_MOON}</span>`
     : kind === 'day'
-    ? `<div class="mks"><span class="mk day${dayRankFor(key) ? ' on' : ''}">${ICON_SUN}</span><div class="chip r ${dayRankFor(key) ? '' : 'off'}" style="background:${chipBG(dayRankFor(key))}"></div></div>`
+    ? `<span class="mk day${dayRankFor(key) ? ' on' : ''}">${ICON_SUN}</span>`
     : `<div class="chip s ${sleepRank(key) && sleepRank(key) !== 'none' ? '' : 'off'}" style="background:${chipBG(sleepRank(key))}"></div>`;
   // 空いた場所に就寝・起床の時刻を常時表示する
+  // 記録が少ない日中・夜は、日付の下の余白に大きなバッジを置く
+  const rk = kind === 'routine' ? routineRank(rec) : kind === 'day' ? dayRankFor(key) : null;
+  const big = kind === 'sleep' ? ''
+    : `<div class="bigbadge"><div class="chip r ${rk ? '' : 'off'}" style="background:${chipBG(rk)}"></div></div>`;
   const tm = kind === 'sleep'
     ? `<div class="tm">
         <span class="bed${rec && rec.bedAt ? '' : ' off'}">${ICON_MOON}${rec && rec.bedAt ? hm(new Date(rec.bedAt)) : '--:--'}</span>
         <span class="wake${rec && rec.wakeAt ? '' : ' off'}">${ICON_SUN}${rec && rec.wakeAt ? hm(new Date(rec.wakeAt)) : '--:--'}</span>
       </div>`
-    : '';
+    : big;
   return `<div class="cell${kind === 'sleep' ? ' time' : ''}${has ? ' has' : ''}${
     key === ymd(new Date()) ? ' today' : ''}${fr ? ' fr fr-' + fr : ''}"
     data-key="${key}" style="${inMonth ? 'opacity:1;' : 'opacity:.35;'}${fr ? 'background:' + chipBG(fr) : ''}">
