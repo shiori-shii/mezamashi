@@ -2302,8 +2302,8 @@ function gemHTML(rank, label){
 const RGEM_BODY = "<g transform=\"rotate(-12 24 24)\">\n  <polygon points=\"24.00,2.50 42.62,13.25 42.62,34.75 24.00,45.50 5.38,34.75 5.38,13.25\" fill=\"url(#gr-RANK)\"/>\n  <polygon points=\"24.00,5.80 39.76,14.90 39.76,33.10 24.00,42.20 8.24,33.10 8.24,14.90\" fill=\"url(#gb-RANK)\"/>\n  <polygon points=\"8.24,14.90 24.00,5.80 39.76,14.90 24.00,24.00\" fill=\"#fff\" fill-opacity=\".34\"/>\n  <polygon points=\"39.76,33.10 24.00,42.20 8.24,33.10 24.00,24.00\" fill=\"#000\" fill-opacity=\".13\"/>\n  <path d=\"M24.00 2.50L24.00 5.80M42.62 13.25L39.76 14.90M42.62 34.75L39.76 33.10M24.00 45.50L24.00 42.20M5.38 34.75L8.24 33.10M5.38 13.25L8.24 14.90\" stroke=\"#fff\" stroke-opacity=\".5\" stroke-width=\".7\" fill=\"none\"/>\n  <polygon points=\"24.00,5.80 39.76,14.90 39.76,33.10 24.00,42.20 8.24,33.10 8.24,14.90\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".55\" stroke-width=\".8\"/>\n</g>\n<circle cx=\"24\" cy=\"24\" r=\"9.6\" fill=\"#fff\" fill-opacity=\".18\" stroke=\"#fff\" stroke-width=\"1.7\"/>\n<polygon points=\"24.00,16.40 24.99,21.60 29.37,18.63 26.40,23.01 31.60,24.00 26.40,24.99 29.37,29.37 24.99,26.40 24.00,31.60 23.01,26.40 18.63,29.37 21.60,24.99 16.40,24.00 21.60,23.01 18.63,18.63 23.01,21.60\" fill=\"#fff\"/>";
 function rgemHTML(rank, size){
   let body = RGEM_BODY.replace(/RANK/g, rank);
-  // 虹は左右反転して、傾きを右向きにする（viewBox の中央 x=24 で鏡写し）
-  if (rank === 'holo') body = `<g transform="translate(48 0) scale(-1 1)">${body}</g>`;
+  // 全段階そろえて右向きに傾ける（viewBox の中央 x=24 で鏡写し）
+  body = `<g transform="translate(48 0) scale(-1 1)">${body}</g>`;
   return `<svg class="rgem rg-${rank}" viewBox="0 0 48 48"${size ? ` style="width:${size}px;height:${size}px"` : ''} aria-hidden="true">${body}</svg>`;
 }
 
