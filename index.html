@@ -298,6 +298,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .top{display:flex;align-items:center;justify-content:space-between;gap:3px;min-height:14px}
 .top .chip.s{width:15px;height:14px;flex:none}
 .top .chip.r{width:9px;height:9px;flex:none}
+.mks{display:flex;align-items:center;gap:3px;flex:none}
 .mk{display:inline-flex;width:13px;height:13px;flex:none;color:var(--line)}
 .mk svg{width:13px;height:13px}
 .mk.on.day{color:var(--gold)}
@@ -2294,9 +2295,9 @@ function cellHTML(key, label, kind, inMonth = true){
   const fr = kind === 'sleep' ? durRank(key) : null;   // 睡眠時間による枠
   // バッジは日付の横に置く
   const mark = kind === 'routine'
-    ? `<span class="mk night${routineRank(rec) ? ' on' : ''}">${ICON_MOON}</span>`
+    ? `<div class="mks"><span class="mk night${routineRank(rec) ? ' on' : ''}">${ICON_MOON}</span><div class="chip r ${routineRank(rec) ? '' : 'off'}" style="background:${chipBG(routineRank(rec))}"></div></div>`
     : kind === 'day'
-    ? `<span class="mk day${dayRankFor(key) ? ' on' : ''}">${ICON_SUN}</span>`
+    ? `<div class="mks"><span class="mk day${dayRankFor(key) ? ' on' : ''}">${ICON_SUN}</span><div class="chip r ${dayRankFor(key) ? '' : 'off'}" style="background:${chipBG(dayRankFor(key))}"></div></div>`
     : `<div class="chip s ${sleepRank(key) && sleepRank(key) !== 'none' ? '' : 'off'}" style="background:${chipBG(sleepRank(key))}"></div>`;
   // 空いた場所に就寝・起床の時刻を常時表示する
   const tm = kind === 'sleep'
