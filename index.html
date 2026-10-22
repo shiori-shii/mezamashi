@@ -210,6 +210,12 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .task .t{flex:1;min-width:0;word-break:break-word;font-size:14px}
 /* 連結ルーティン：ステップを矢印でつなぎ、終えた所・次にやる所を分けて見せる */
 .task.chain .t{line-height:1.7}
+/* 設定画面のタスク行：名前の下に操作ボタンを並べる */
+.task.edit{flex-wrap:wrap;row-gap:4px}
+.task.edit .t{flex:1 1 100%}
+.task.edit .acts{display:flex;gap:2px;margin-left:auto}
+.task.edit .btn.sm{padding:6px 10px}
+.task.edit .btn[disabled]{opacity:.25}
 .task .st.ok{color:var(--muted);text-decoration:line-through}
 .task .st.next{font-weight:800;color:var(--accent)}
 .task .arr{margin:0 6px;color:var(--muted);font-weight:800}
@@ -426,6 +432,9 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);
 }
 .cd b{font-size:22px;font-weight:800;color:var(--accent);margin:0 2px}
+.camcd{margin:0 0 10px;font-size:14px}
+.camcd b{font-size:34px}
+.cd b.u{color:#e5484d}
 .warn{margin-top:12px;font-size:11px;line-height:1.75;color:var(--muted)}
 .warn b{color:var(--gold);font-weight:800}
 .camwrap{position:relative;overflow:hidden;background:#000;aspect-ratio:1/1;
@@ -908,6 +917,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 <div class="ov" id="cam">
   <div class="panel">
     <h3 id="cam-title">QRコード</h3>
+    <div class="cd camcd" id="cam-cd"></div>
     <div class="camwrap">
       <video id="cam-video" playsinline muted></video>
       <div class="camframe"></div>
@@ -1068,9 +1078,18 @@ function sleepRank(key){
   return worse(rankOf(diffMin(key, 'bed')), rankOf(diffMin(key, 'wake')));
 }
 /* 夜のバッジ。0 の設定は「全部」（虹）または「なし」（金・銀）を意味する */
-function routineRank(rec){
-  if (!rec || !S.tasks.length) return null;
-  const n = itemsDone(S.tasks, rec.routine || []), total = S.tasks.length, st = S.settings;
+/* タスクが作られた時刻（IDに入っている）。入っていなければ 0 ＝ 最初からあった */
+const taskBorn = t => { const m = /^t(\d{12,})/.exec(t.id); return m ? Number(m[1]) : 0; };
+/* その夜に存在していたタスク。あとから追加したタスクは、過去の夜の判定に入れない */
+function tasksForNight(key){
+  if (!key) return S.tasks;
+  const end = planAt(key, 'wake').getTime();
+  return S.tasks.filter(t => taskBorn(t) <= end);
+}
+function routineRank(rec, key){
+  const tasks = tasksForNight(key);
+  if (!rec || !tasks.length) return null;
+  const n = itemsDone(tasks, rec.routine || []), total = tasks.length, st = S.settings;
   if (!n) return null;
   if (n >= Math.min(st.nightHolo || total, total)) return 'holo';
   if (st.nightGold && n >= st.nightGold) return 'gold';
@@ -1179,7 +1198,7 @@ document.addEventListener('touchend', e => {
 let justId = null;   // 直前にチェックしたタスク（行のヒット演出用）
 function routineStreak(){
   let n = 0, d = parseKey(nightKey());
-  while (routineRank(S.days[ymd(d)])){ n++; d = addDays(d, -1); }
+  while (routineRank(S.days[ymd(d)], ymd(d))){ n++; d = addDays(d, -1); }
   return n;
 }
 /* ===================== ルーティン（夜・日中 共通） =====================
@@ -1273,13 +1292,23 @@ function renderEditor(kind, box){
     const chain = stepsOf(t).length > 1, last = i === tasks.length - 1;
     const el = document.createElement('div');
     el.className = 'task' + (chain ? ' chain' : '');
-    el.innerHTML = `<div class="t"></div>
+    el.className += ' edit';
+    el.innerHTML = `<div class="t"></div><div class="acts">
+      <button class="btn sm ghost" data-act="up"${i ? '' : ' disabled'} aria-label="上へ">▲</button>
+      <button class="btn sm ghost" data-act="down"${last ? ' disabled' : ''} aria-label="下へ">▼</button>
       ${last ? '' : '<button class="btn sm ghost" data-act="link">連結</button>'}
       ${chain ? '<button class="btn sm ghost" data-act="split">分割</button>' : ''}
       <button class="btn sm ghost" data-act="edit">✎</button>
-      <button class="btn sm ghost" data-act="del">✕</button>`;
+      <button class="btn sm ghost" data-act="del">✕</button></div>`;
     el.querySelector('.t').textContent = stepsOf(t).join(' → ');
     const on = (act, fn) => { const b = el.querySelector(`[data-act=${act}]`); if (b) b.onclick = fn; };
+    const move = d => {                          // 隣と入れ替える
+      const list = tasks.slice(), j = i + d;
+      [list[i], list[j]] = [list[j], list[i]];
+      R.setTasks(list); save(); renderAll();
+    };
+    on('up',   () => move(-1));
+    on('down', () => move(1));
     on('edit', () => {
       const v = prompt('タスク名（「→」でつなぐと連結ルーティンになります）', stepsOf(t).join(' → '));
       const steps = v ? parseSteps(v) : [];
@@ -1338,7 +1367,7 @@ function renderRoutine(){
   $('prog-bar').style.width = total ? (n / total * 100) + '%' : '0%';
   const streak = routineStreak();
   renderDots($('pdots'), total, n);
-  const rr = routineRank(rec);
+  const rr = routineRank(rec, key);
   $('routine-status').innerHTML = (rr ? badgeRowHTML(rr) : '')
     + (streak ? `<div class="streak" style="margin-top:${rr ? 8 : 0}px">連続達成 <b>${streak}</b> 日</div>` : '');
 }
@@ -1351,10 +1380,10 @@ function flashJust(id){
 }
 /* 演出の大きさ：ステップ完了＝小、1件完了＝中、全部完了＝大 */
 function toggleTask(t){
-  const rec = day(nightKey(), true);
-  const was = routineRank(rec);
+  const nk = nightKey(), rec = day(nk, true);
+  const was = routineRank(rec, nk);
   const res = stepTap('night', t);
-  const now = routineRank(rec);
+  const now = routineRank(rec, nk);
   if (now && !was) rec.routineAt = new Date().toISOString();
   flashJust(res.added ? t.id : null);
   save(); renderAll();
@@ -1550,15 +1579,24 @@ function renderQrList(){
   });
 }
 /* 鳴動中、QRでバッジを取るまでの残り秒数を出す。読み取るたびに数え直す */
-function renderQrCd(){
-  const el = $('qr-cd');
-  if (!el || !AL.ringing) return;
+function qrCdHTML(){
+  const st = S.settings;
+  if (!AL.ringing || !st.qrMode || !st.badgeQr) return '';
   const base = AL.lastScanAt ?? AL.ringStart;
-  if (!base) return;
-  const left = Math.ceil(S.settings.badgeSec - (Date.now() - base) / 1000);
-  el.innerHTML = AL.badgeLost ? 'バッジは対象外になりました'
-    : left > 0 ? `バッジまで あと <b>${left}</b> 秒`
+  if (!base) return '';
+  const left = Math.ceil(st.badgeSec - (Date.now() - base) / 1000);
+  return AL.badgeLost ? 'バッジは対象外になりました'
+    : left > 0 ? `バッジまで あと <b${left <= 10 ? ' class="u"' : ''}>${left}</b> 秒`
     : '時間切れ：この後の読み取りはバッジなし';
+}
+/* 鳴動中、QRでバッジを取るまでの残り秒数を、鳴動画面とカメラ画面の両方に出す。
+   カメラが開いていると鳴動画面は隠れるので、カメラ側に出すことが大事。 */
+function renderQrCd(){
+  const html = qrCdHTML();
+  const a = $('qr-cd'); if (a) a.innerHTML = html;
+  const c = $('cam-cd'), show = !!html && $('cam').classList.contains('on');
+  c.style.display = show ? 'block' : 'none';
+  if (show) c.innerHTML = html;
 }
 function renderCountdown(){
   const el = $('countdown');
@@ -2342,13 +2380,13 @@ function cellHTML(key, label, kind, inMonth = true){
   const fr = kind === 'sleep' ? durRank(key) : null;   // 睡眠時間による枠
   // バッジは日付の横に置く
   const mark = kind === 'routine'
-    ? `<span class="mk night${routineRank(rec) ? ' on' : ''}">${ICON_MOON}</span>`
+    ? `<span class="mk night${routineRank(rec, key) ? ' on' : ''}">${ICON_MOON}</span>`
     : kind === 'day'
     ? `<span class="mk day${dayRankFor(key) ? ' on' : ''}">${ICON_SUN}</span>`
     : `<div class="chip s ${sleepRank(key) && sleepRank(key) !== 'none' ? '' : 'off'}" style="background:${chipBG(sleepRank(key))}"></div>`;
   // 空いた場所に就寝・起床の時刻を常時表示する
   // 記録が少ない日中・夜は、日付の下の余白に大きなバッジを置く
-  const rk = kind === 'routine' ? routineRank(rec) : kind === 'day' ? dayRankFor(key) : null;
+  const rk = kind === 'routine' ? routineRank(rec, key) : kind === 'day' ? dayRankFor(key) : null;
   const big = kind === 'sleep' ? ''
     : `<div class="bigbadge">${rk ? rgemHTML(rk) : ''}</div>`;
   const tm = kind === 'sleep'
@@ -2365,7 +2403,7 @@ function cellHTML(key, label, kind, inMonth = true){
 function weekHead(ws, label, kind){
   const keys = weekKeys(ws);
   const n = kind === 'routine'
-    ? keys.filter(k => routineRank(S.days[k])).length
+    ? keys.filter(k => routineRank(S.days[k], k)).length
     : keys.filter(achieved).length;
   return `<div class="whead">
     <span class="wk">${label}</span>
@@ -2472,10 +2510,10 @@ function statsInto(kind, elId){
   const c = {holo:0, gold:0, silver:0, bronze:0};
   const bump = r => { if (r && c[r] !== undefined) c[r]++; };
   const rankOfDay = k => kind === 'sleep' ? sleepRank(k)
-    : kind === 'day' ? dayRankFor(k) : routineRank(S.days[k]);
+    : kind === 'day' ? dayRankFor(k) : routineRank(S.days[k], k);
   const weekCount = keys => kind === 'sleep'
     ? keys.filter(achieved).length
-    : keys.filter(k => routineRank(S.days[k])).length;
+    : keys.filter(k => routineRank(S.days[k], k)).length;
 
   if (kind === 'day'){                       // 日中は日ごとの判定だけ（週バッジなし）
     Object.keys(S.dayLog).forEach(k => bump(dayRankFor(k)));
@@ -2555,13 +2593,13 @@ function showDetail(key){
 
 /* ルーティンタブの夜の記録：過去日の完了・未完了を切り替える（ルーティン内容はここだけ） */
 function showRoutineDetail(key){
-  const rec = S.days[key] || {}, list = rec.routine || [], r = routineRank(rec);
+  const rec = S.days[key] || {}, list = rec.routine || [], r = routineRank(rec, key);
   $('detail').innerHTML = `
     <h3>${md(parseKey(key))} の夜のルーティン</h3>
     <div class="kv"><span>バッジ</span><span style="display:inline-flex;align-items:center;gap:8px">${r
       ? `${rgemHTML(r, 30)}<b>${RANK_LABEL[r]}</b>`
       : '<span class="muted">なし</span>'}</span></div>
-    ${S.tasks.map(t => taskRowHTML(t, list)).join('')}
+    ${tasksForNight(key).map(t => taskRowHTML(t, list)).join('')}
     <p class="muted" style="font-size:11px;margin:8px 0 0">タップで完了・未完了を切り替えられます</p>
     <div class="row" style="margin-top:14px">
       <button class="btn primary grow" id="d-close">閉じる</button>
