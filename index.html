@@ -27,6 +27,7 @@
   --shadow:0 6px 18px rgba(20,86,133,.13);
   --shadow-lg:0 14px 34px rgba(20,86,133,.22);
   --stripe:rgba(0,164,228,.07);
+  --track:#2d3441; --yl1:#ffe85a; --yl2:#ffc928; --done-bg:#dde3ea; --done-fg:#a5afbd;
   --spark:#00a4e4;
   --burst:rgba(0,164,228,.85);
   --chk-fg:#ffffff;
@@ -42,6 +43,7 @@
   --shadow:0 6px 18px rgba(0,0,0,.4);
   --shadow-lg:0 14px 34px rgba(0,0,0,.55);
   --stripe:rgba(125,220,255,.07);
+  --track:#0a101e; --yl1:#ffe05a; --yl2:#f2b61f; --done-bg:#2a3550; --done-fg:#6d7ca0;
   --spark:#ffffff;
   --burst:rgba(255,255,255,.9);
   --chk-fg:#06243a;
@@ -249,6 +251,78 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 .gemrow{display:inline-flex;align-items:center;gap:9px;font-size:13px;font-weight:800;color:var(--fg)}
 .streak{font-size:12px;color:var(--muted)}
 .streak b{color:var(--gold);font-size:16px}
+
+/* ---------- ミッションカード（ルーティン） ---------- */
+.mission{
+  position:relative;margin:0 0 10px;padding:11px 12px 12px;cursor:pointer;border-radius:12px;
+  background:
+    repeating-linear-gradient(115deg,rgba(0,164,228,.045) 0 2px,transparent 2px 15px),
+    linear-gradient(180deg,var(--card),var(--bg2));
+  box-shadow:0 0 0 1px var(--line),0 4px 10px rgba(20,86,133,.08);
+  transition:transform .12s,box-shadow .25s;
+}
+.mission:active{transform:scale(.99)}
+.mission.done{box-shadow:0 0 0 1.5px rgba(0,184,255,.5),0 4px 12px rgba(0,164,228,.16)}
+.m-head{display:flex;align-items:center;gap:9px;min-width:0}
+.m-tag{
+  flex:none;font-size:10px;font-weight:800;letter-spacing:.1em;color:#fff;padding:3px 9px;border-radius:5px;
+  background:linear-gradient(180deg,#46b4ff,#1f86e6);box-shadow:inset 0 -1px 0 rgba(0,0,0,.15);
+}
+.mission.chain .m-tag{background:linear-gradient(180deg,#8d9bff,#5a6fe0)}
+.m-title{flex:1;min-width:0;font-size:15px;font-weight:800;color:var(--fg);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-more{flex:none;font-size:11px;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;
+  padding:2px 8px;border-radius:9px;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.m-sep{height:1px;margin:9px 0 10px;background:linear-gradient(90deg,transparent,var(--line) 12%,var(--line) 88%,transparent)}
+
+/* 連結のステップ一覧：縦につながる線で順番を示す */
+.m-steps{list-style:none;margin:0 0 11px;padding:0}
+.m-steps li{position:relative;display:flex;align-items:center;gap:10px;padding:3px 0;min-height:26px;
+  font-size:13px;font-weight:700;color:var(--muted)}
+.m-steps li:not(:last-child)::before{
+  content:"";position:absolute;left:8px;top:50%;height:100%;width:2px;margin-left:-1px;background:var(--line);z-index:0}
+.m-steps li.ok:not(:last-child)::before{background:var(--accent2)}
+.m-steps .nd{
+  position:relative;z-index:1;flex:none;width:17px;height:17px;border-radius:50%;display:grid;place-items:center;
+  font-size:10px;font-weight:800;color:#fff;background:var(--card);box-shadow:inset 0 0 0 2px var(--line)}
+.m-steps li.ok .nd{background:linear-gradient(135deg,var(--accent2),var(--accent-dk));box-shadow:none}
+.m-steps li.ok .tx{color:var(--muted)}
+.m-steps li.next{color:var(--fg)}
+.m-steps li.next .nd{box-shadow:inset 0 0 0 2px var(--accent)}
+.m-steps li.next .nd::after{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);
+  animation:ndPulse 1.4s ease-in-out infinite}
+@keyframes ndPulse{0%,100%{transform:scale(.7);opacity:.7}50%{transform:scale(1.05);opacity:1}}
+.m-steps .tx{min-width:0;word-break:break-word}
+
+/* 進捗バー（暗い溝に水色が満ちる）とボタン */
+.m-foot{display:flex;align-items:center;gap:12px}
+.m-bar{
+  position:relative;flex:1;height:13px;background:var(--track);overflow:hidden;
+  clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);
+}
+.m-bar>i:first-child{
+  position:absolute;left:0;top:0;bottom:0;
+  background:linear-gradient(180deg,#5fe0ff,#00b4ff 55%,#0096e6);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
+  transition:width .55s cubic-bezier(.17,.89,.32,1);
+}
+.m-bar .bm{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:rgba(255,255,255,.7);transform:skewX(-14deg)}
+.m-bar{background-clip:padding-box}
+.m-btn{
+  position:relative;flex:none;min-width:78px;text-align:center;padding:9px 0;font-size:13px;font-weight:900;
+  letter-spacing:.08em;color:#4a3a00;overflow:hidden;
+  background:linear-gradient(180deg,var(--yl1),var(--yl2));
+  clip-path:polygon(9px 0,100% 0,calc(100% - 9px) 100%,0 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6);
+}
+.m-btn::after{content:"";position:absolute;right:0;bottom:0;border-style:solid;border-width:0 0 12px 12px;
+  border-color:transparent transparent rgba(214,150,0,.5) transparent}
+.mission.done .m-btn{background:var(--done-bg);color:var(--done-fg);box-shadow:none}
+.mission.done .m-btn::after{display:none}
+.mission.just{animation:missionHit .6s ease-out}
+@keyframes missionHit{
+  0%{box-shadow:0 0 0 1.5px rgba(0,184,255,.9),0 0 0 0 rgba(0,184,255,.5)}
+  100%{box-shadow:0 0 0 1.5px rgba(0,184,255,.5),0 0 0 14px rgba(0,184,255,0)}}
 
 /* ---------- バッジ ---------- */
 .badge{
@@ -1251,6 +1325,8 @@ function stepTap(kind, t, key){
           itemDone:n + 1 >= s.length, pos:n + 1, len:s.length};
 }
 
+/* ルーティン画面のタスク。ブルーアーカイブのミッション画面にならい、
+   見出し（タグ＋名前）→ 区切り線 →（連結ならステップ一覧）→ 進捗バー＋ボタン の構成にする */
 function renderTaskList(kind, box, onTap){
   const R = RT[kind], tasks = R.tasks(), list = R.list();
   box.innerHTML = '';
@@ -1261,20 +1337,33 @@ function renderTaskList(kind, box, onTap){
   tasks.forEach(t => {
     const s = stepsOf(t), n = stepsDoneOf(t, list), done = n >= s.length, chain = s.length > 1;
     const el = document.createElement('div');
-    el.className = 'task' + (done ? ' done' : '') + (chain ? ' chain' : '')
+    el.className = 'mission' + (done ? ' done' : '') + (chain ? ' chain' : '')
                  + (t.id === justId ? ' just' : '');
-    el.innerHTML = `<div class="chk${chain && n && !done ? ' part' : ''}">${
-      done ? '✓' : chain ? `${n}/${s.length}` : ''}</div><div class="t"></div>`;
-    const tt = el.querySelector('.t');
+    const marks = chain ? Array.from({length: s.length - 1}, (_, i) =>
+      `<i class="bm" style="left:${((i + 1) / s.length * 100).toFixed(2)}%"></i>`).join('') : '';
+    el.innerHTML = `
+      <div class="m-head"><span class="m-tag">${chain ? 'CHAIN' : 'ROUTINE'}</span><span class="m-title"></span></div>
+      <div class="m-sep"></div>
+      ${chain ? '<ol class="m-steps"></ol>' : ''}
+      <div class="m-foot">
+        <div class="m-bar"><i style="width:${(n / s.length * 100).toFixed(1)}%"></i>${marks}</div>
+        <div class="m-btn">${done ? 'CLEAR' : chain ? 'NEXT' : 'DONE'}</div>
+      </div>`;
+    el.querySelector('.m-title').textContent = chain ? `${s[0]} … ${s[s.length - 1]}` : t.title;
     if (chain){
+      const more = document.createElement('span');
+      more.className = 'm-more'; more.textContent = `${n >= s.length ? s.length : n + 1}/${s.length}`;
+      el.querySelector('.m-head').appendChild(more);
+      const ol = el.querySelector('.m-steps');
       s.forEach((name, i) => {
-        if (i){ const a = document.createElement('span'); a.className = 'arr'; a.textContent = '→'; tt.appendChild(a); }
-        const sp = document.createElement('span');
-        sp.className = 'st' + (i < n ? ' ok' : i === n ? ' next' : '');
-        sp.textContent = name;
-        tt.appendChild(sp);
+        const li = document.createElement('li');
+        li.className = i < n ? 'ok' : i === n ? 'next' : '';
+        li.innerHTML = '<span class="nd"></span><span class="tx"></span>';
+        li.querySelector('.nd').textContent = i < n ? '✓' : '';
+        li.querySelector('.tx').textContent = name;
+        ol.appendChild(li);
       });
-    } else tt.textContent = t.title;
+    }
     el.onclick = () => onTap(t);
     box.appendChild(el);
   });
