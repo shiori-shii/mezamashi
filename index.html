@@ -1146,11 +1146,28 @@ function day(key, create = false){
   return S.days[key];
 }
 // 就寝・起床がそろって初めて1バッジ（低いほうのランクを採用）
+/* 起床の時刻で決まる段階。予定+5分以内はホログラムの候補（就寝が足りなければ金止まり） */
+function wakeRankOf(diff){
+  if (diff === null) return null;
+  if (diff <= 5)  return 'holo';
+  if (diff <= 15) return 'gold';
+  if (diff <= 30) return 'silver';
+  if (diff <= 45) return 'bronze';
+  return 'none';
+}
+/* 睡眠のバッジ。起床の記録があれば獲得できる（起床だけで金まで）。
+   ホログラムは、就寝もホログラムで、かつ起床が予定+5分以内のときだけ。 */
 function sleepRank(key){
   const rec = S.days[key];
-  if (!rec || !rec.bedAt || !rec.wakeAt) return null;
+  if (!rec || !rec.wakeAt) return null;
   if (rec.noBadge) return 'none';          // 起床時にQR解除の条件を満たせなかった
-  return worse(rankOf(diffMin(key, 'bed')), rankOf(diffMin(key, 'wake')));
+  const w = wakeRankOf(diffMin(key, 'wake'));
+  if (w === 'holo') return rec.bedAt && rankOf(diffMin(key, 'bed')) === 'holo' ? 'holo' : 'gold';
+  return w;
+}
+/* 就寝の時点で、起床の条件さえ満たせば得られる最高ランク（就寝がホログラムなら虹、それ以外は金） */
+function maxSleepRank(key){
+  return rankOf(diffMin(key, 'bed')) === 'holo' ? 'holo' : 'gold';
 }
 /* 夜のバッジ。0 の設定は「全部」（虹）または「なし」（金・銀）を意味する */
 /* タスクが作られた時刻（IDに入っている）。入っていなければ 0 ＝ 最初からあった */
@@ -1612,7 +1629,7 @@ function toggleTask(t){
   save(); renderAll();
   if (!res.added){ sfx('undo'); return; }           // 戻したときは演出なし
   const n = itemsDone(S.tasks, rec.routine), total = S.tasks.length;
-  if (now && !was){
+  if (now === 'holo' && was !== 'holo'){
     flash(); fanfare();
     celebrate('ALL CLEAR！', 'holo', 'ルーティン達成', `連続達成 ${routineStreak()} 日目`, true, 'gem');
   } else if (res.chain && !res.itemDone){
@@ -1779,6 +1796,7 @@ function renderAlarm(){
     <div class="kv"><span>対象</span><span>${md(parseKey(key))} の夜</span></div>
     <div class="kv"><span class="lbl bed">${ICON_MOON}就寝</span><span>${t(rec.bedAt)}</span></div>
     <div class="kv"><span class="lbl wake">${ICON_SUN}起床</span><span>${t(rec.wakeAt)}</span></div>
+    ${rec.bedAt && !rec.wakeAt ? `<div class="kv"><span>獲得できる</span><span>${diaHTML(maxSleepRank(key), 24, 22)}</span></div>` : ''}
     <div class="center" style="margin-top:14px">${r
       ? gemHTML(r)
       : '<span class="muted">就寝・起床がそろうとバッジを獲得</span>'}</div>`;
@@ -1958,7 +1976,7 @@ function record(kind){
   } else {
     tone(740, .18, 'triangle', .12);
     note(kind === 'bed'
-      ? `就寝 <b>${hm(new Date(rec.bedAt))}</b> を記録　起床の記録でバッジ獲得`
+      ? `就寝 <b>${hm(new Date(rec.bedAt))}</b> を記録　起床条件を満たすと ${diaHTML(maxSleepRank(key), 22, 20)} を獲得`
       : `起床 <b>${hm(new Date(rec.wakeAt))}</b> を記録　就寝の記録でバッジ獲得`);
   }
 }
