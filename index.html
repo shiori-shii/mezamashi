@@ -409,6 +409,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 }
 /* カット面の線。横線がテーブル、2本の斜線は下端の尖りから放射させる
    （円錐グラデーションの中心を尖りに置くと、線が正しく一点へ集まる） */
+.chip.dia{display:inline-block;vertical-align:middle;flex:none}
 .chip.s::before{
   content:"";position:absolute;inset:0;z-index:1;
   background:
@@ -1613,7 +1614,7 @@ function toggleTask(t){
   const n = itemsDone(S.tasks, rec.routine), total = S.tasks.length;
   if (now && !was){
     flash(); fanfare();
-    celebrate('ALL CLEAR！', 'holo', 'ルーティン達成', `連続達成 ${routineStreak()} 日目`, true);
+    celebrate('ALL CLEAR！', 'holo', 'ルーティン達成', `連続達成 ${routineStreak()} 日目`, true, 'gem');
   } else if (res.chain && !res.itemDone){
     sfx('step', {pos:res.pos, p:(n + res.pos / res.len) / total});
     note(`<b>${esc(res.step)}</b> 完了　→ 次は <b>${esc(res.next)}</b>`);
@@ -1656,7 +1657,7 @@ function toggleDayTask(t){
   const r = dayRank(), n = dayCount(), total = S.dayTasks.length;
   if (r === 'holo' && was !== 'holo'){
     flash(); fanfare();
-    celebrate('DAY CLEAR！', 'holo', '日中バッジ', `日中のルーティン ${n} 件クリア`, true);
+    celebrate('DAY CLEAR！', 'holo', '日中バッジ', `日中のルーティン ${n} 件クリア`, true, 'gem');
   } else if (r && r !== was){                       // 金・銀に上がったときは中くらいの演出
     sfx('badge');
     toast('BADGE', `${RANK_LABEL[r]}バッジ　${n} / ${total}`);
@@ -1713,12 +1714,12 @@ function flash(){
   const f = $('flash');
   f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
 }
-function celebrate(title, rank, text, sub, intense){
+function celebrate(title, rank, text, sub, intense, shape = 'dia'){
   const ov = $('ov-celebrate'), box = $('celebrate');
   box.innerHTML = `<div class="lines"></div>${intense ? '<div class="rays"></div><div class="halo"></div>'
       + '<div class="bigring"></div><div class="bigring d2"></div><div class="bigring d3"></div>' : ''}
     <div class="ttl"><span>${title}</span></div>
-    <div class="pop">${rank ? `<div class="gembig">${rgemHTML(rank, 96)}<div class="gemlabel">${text}</div></div>` : ''}</div>
+    <div class="pop">${rank ? (shape === 'gem' ? rgemHTML(rank, 96) : diaHTML(rank, 92, 84)) : ''}</div>
     ${sub ? `<div class="sub">${sub}</div>` : ''}`;
   const num = intense ? 46 : 18;
   for (let i = 0; i < num; i++){
@@ -2585,6 +2586,10 @@ function gemHTML(rank, label){
 /* ルーティン（日中・夜）用のバッジ：六角形の結晶＋円の紋章＋星。段階ごとに色だけ変える。
    size を渡すと大きさを固定、渡さなければ CSS（枠に合わせて縮む）で決まる。 */
 const RGEM_BODY = "<g transform=\"rotate(-12 24 24)\">\n  <polygon points=\"24.00,2.50 42.62,13.25 42.62,34.75 24.00,45.50 5.38,34.75 5.38,13.25\" fill=\"url(#gr-RANK)\"/>\n  <polygon points=\"24.00,5.80 39.76,14.90 39.76,33.10 24.00,42.20 8.24,33.10 8.24,14.90\" fill=\"url(#gb-RANK)\"/>\n  <polygon points=\"8.24,14.90 24.00,5.80 39.76,14.90 24.00,24.00\" fill=\"#fff\" fill-opacity=\".34\"/>\n  <polygon points=\"39.76,33.10 24.00,42.20 8.24,33.10 24.00,24.00\" fill=\"#000\" fill-opacity=\".13\"/>\n  <path d=\"M24.00 2.50L24.00 5.80M42.62 13.25L39.76 14.90M42.62 34.75L39.76 33.10M24.00 45.50L24.00 42.20M5.38 34.75L8.24 33.10M5.38 13.25L8.24 14.90\" stroke=\"#fff\" stroke-opacity=\".5\" stroke-width=\".7\" fill=\"none\"/>\n  <polygon points=\"24.00,5.80 39.76,14.90 39.76,33.10 24.00,42.20 8.24,33.10 8.24,14.90\" fill=\"none\" stroke=\"#fff\" stroke-opacity=\".55\" stroke-width=\".8\"/>\n</g>\n<circle cx=\"24\" cy=\"24\" r=\"9.6\" fill=\"#fff\" fill-opacity=\".18\" stroke=\"#fff\" stroke-width=\"1.7\"/>\n<polygon points=\"24.00,16.40 24.99,21.60 29.37,18.63 26.40,23.01 31.60,24.00 26.40,24.99 29.37,29.37 24.99,26.40 24.00,31.60 23.01,26.40 18.63,29.37 21.60,24.99 16.40,24.00 21.60,23.01 18.63,18.63 23.01,21.60\" fill=\"#fff\"/>";
+/* 睡眠のバッジ：カレンダーと同じブリリアントカットのダイヤ */
+function diaHTML(rank, w, h){
+  return rank ? `<span class="chip s dia" style="width:${w}px;height:${h}px;background:${chipBG(rank)}"></span>` : '';
+}
 function rgemHTML(rank, size){
   let body = RGEM_BODY.replace(/RANK/g, rank);
   // 全段階そろえて右向きに傾ける（viewBox の中央 x=24 で鏡写し）
@@ -2780,7 +2785,7 @@ function showDetail(key){
   $('detail').innerHTML = `
     <h3>${key} の夜</h3>
     <div class="kv"><span>バッジ</span><span>${has
-      ? `<span style="display:inline-flex;align-items:center;gap:8px">${rgemHTML(r, 30)}<b>${RANK_LABEL[r]}</b></span>`
+      ? diaHTML(r, 30, 27)
       : `<span class="muted" style="text-align:right;line-height:1.5">なし${reason ? `<br><small>${esc(reason)}</small>` : ''}</span>`}</span></div>
     <div class="kv"><span class="lbl bed">${ICON_MOON}就寝予定</span><span><b class="dt">${md(planAt(key,'bed'))}</b>
       <input type="time" id="e-bedplan" value="${bedPlan}" style="width:110px"></span></div>
@@ -2819,7 +2824,7 @@ function showRoutineDetail(key){
   $('detail').innerHTML = `
     <h3>${md(parseKey(key))} の夜のルーティン</h3>
     <div class="kv"><span>バッジ</span><span style="display:inline-flex;align-items:center;gap:8px">${r
-      ? `${rgemHTML(r, 30)}<b>${RANK_LABEL[r]}</b>`
+      ? rgemHTML(r, 30)
       : '<span class="muted">なし</span>'}</span></div>
     ${tasksForNight(key).map(t => taskRowHTML(t, list)).join('')}
     <p class="muted" style="font-size:11px;margin:8px 0 0">タップで完了・未完了を切り替えられます</p>
