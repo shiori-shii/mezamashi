@@ -543,7 +543,8 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   box-shadow:0 8px 22px rgba(0,132,196,.45);
   animation:baSlide .5s cubic-bezier(.17,.89,.32,1.06) both;
 }
-#celebrate .pop{position:relative;z-index:2;animation:baPop .6s cubic-bezier(.17,.89,.32,1.1) .18s both}
+#celebrate .pop{position:relative;z-index:2;display:flex;justify-content:center;align-items:center;
+  animation:baPop .6s cubic-bezier(.17,.89,.32,1.1) .18s both}
 #celebrate .sub{margin-top:16px;font-size:12px;letter-spacing:.08em;color:var(--fg);font-weight:700;
   position:relative;z-index:2;animation:baUp .45s cubic-bezier(.17,.89,.32,1) .46s both}
 @keyframes baSlide{0%{transform:translateX(-70px) skewX(-8deg);opacity:0}
@@ -1632,6 +1633,9 @@ function toggleTask(t){
   if (now === 'holo' && was !== 'holo'){
     flash(); fanfare();
     celebrate('ALL CLEAR！', 'holo', 'ルーティン達成', `連続達成 ${routineStreak()} 日目`, true, 'gem');
+  } else if (now && now !== was){
+    sfx('badge');
+    celebrate('BADGE GET', now, '', '', false, 'gem');
   } else if (res.chain && !res.itemDone){
     sfx('step', {pos:res.pos, p:(n + res.pos / res.len) / total});
     note(`<b>${esc(res.step)}</b> 完了　→ 次は <b>${esc(res.next)}</b>`);
@@ -1675,9 +1679,9 @@ function toggleDayTask(t){
   if (r === 'holo' && was !== 'holo'){
     flash(); fanfare();
     celebrate('DAY CLEAR！', 'holo', '日中バッジ', `日中のルーティン ${n} 件クリア`, true, 'gem');
-  } else if (r && r !== was){                       // 金・銀に上がったときは中くらいの演出
+  } else if (r && r !== was){                       // 金・銀・銅に上がったときも、中くらいの演出
     sfx('badge');
-    toast('BADGE', `${RANK_LABEL[r]}バッジ　${n} / ${total}`);
+    celebrate('BADGE GET', r, '', '', false, 'gem');
   } else if (res.chain && !res.itemDone){
     sfx('step', {pos:res.pos, p:(n + res.pos / res.len) / total});
     note(`<b>${esc(res.step)}</b> 完了　→ 次は <b>${esc(res.next)}</b>`);
