@@ -1718,7 +1718,7 @@ function celebrate(title, rank, text, sub, intense){
   box.innerHTML = `<div class="lines"></div>${intense ? '<div class="rays"></div><div class="halo"></div>'
       + '<div class="bigring"></div><div class="bigring d2"></div><div class="bigring d3"></div>' : ''}
     <div class="ttl"><span>${title}</span></div>
-    <div class="pop">${rank ? badgeHTML(rank, text, true) : ''}</div>
+    <div class="pop">${rank ? `<div class="gembig">${rgemHTML(rank, 96)}<div class="gemlabel">${text}</div></div>` : ''}</div>
     ${sub ? `<div class="sub">${sub}</div>` : ''}`;
   const num = intense ? 46 : 18;
   for (let i = 0; i < num; i++){
@@ -2780,7 +2780,7 @@ function showDetail(key){
   $('detail').innerHTML = `
     <h3>${key} の夜</h3>
     <div class="kv"><span>バッジ</span><span>${has
-      ? badgeHTML(r, RANK_LABEL[r])
+      ? `<span style="display:inline-flex;align-items:center;gap:8px">${rgemHTML(r, 30)}<b>${RANK_LABEL[r]}</b></span>`
       : `<span class="muted" style="text-align:right;line-height:1.5">なし${reason ? `<br><small>${esc(reason)}</small>` : ''}</span>`}</span></div>
     <div class="kv"><span class="lbl bed">${ICON_MOON}就寝予定</span><span><b class="dt">${md(planAt(key,'bed'))}</b>
       <input type="time" id="e-bedplan" value="${bedPlan}" style="width:110px"></span></div>
