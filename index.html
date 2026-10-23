@@ -605,6 +605,20 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 
 /* ---------- 小さな通知 ---------- */
 #note{position:fixed;left:0;right:0;bottom:20px;z-index:60;pointer-events:none;text-align:center;padding:0 16px}
+/* 画面の真ん中に出す案内（就寝の記録で、獲得できるバッジを示す） */
+#cnote{position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);z-index:62;pointer-events:none;
+  display:flex;justify-content:center;padding:0 20px}
+.cnbox{display:inline-flex;align-items:center;gap:10px;padding:12px 18px;font-size:13px;font-weight:800;
+  color:var(--fg);background:var(--card);box-shadow:var(--shadow-lg);border-left:3px solid var(--accent);
+  clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);
+  animation:cnIn 2.4s cubic-bezier(.17,.89,.32,1) both}
+.cnbox b{color:var(--accent)}
+@keyframes cnIn{
+  0%{transform:scale(.9);opacity:0}
+  14%{transform:scale(1.03);opacity:1}
+  22%{transform:scale(1);opacity:1}
+  80%{transform:scale(1);opacity:1}
+  100%{transform:scale(.98);opacity:0}}
 .notebox{
   display:inline-block;padding:10px 17px;font-size:12px;line-height:1.5;font-weight:700;
   background:var(--card);color:var(--fg);box-shadow:var(--shadow-lg);
@@ -948,6 +962,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
 <div id="wipe"></div>
 <div id="toast"></div>
 <div id="note"></div>
+<div id="cnote"></div>
 <div class="ov" id="ov-celebrate"><div id="celebrate"></div></div>
 <div class="ov" id="ov-detail"><div class="panel" id="detail"></div></div>
 
@@ -1731,6 +1746,13 @@ function note(text){
   clearTimeout(note._t);
   note._t = setTimeout(() => { box.innerHTML = ''; }, 1950);
 }
+/* 画面の真ん中に出す案内 */
+function cnote(html){
+  const box = $('cnote');
+  box.innerHTML = `<div class="cnbox">${html}</div>`;
+  clearTimeout(cnote._t);
+  cnote._t = setTimeout(() => { box.innerHTML = ''; }, 2600);
+}
 function flash(){
   const f = $('flash');
   f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
@@ -1979,9 +2001,10 @@ function record(kind){
       RANK_LABEL[r], '就寝・起床セット達成', true);
   } else {
     tone(740, .18, 'triangle', .12);
-    note(kind === 'bed'
-      ? `就寝 <b>${hm(new Date(rec.bedAt))}</b> を記録　起床条件を満たすと ${diaHTML(maxSleepRank(key), 22, 20)} を獲得`
-      : `起床 <b>${hm(new Date(rec.wakeAt))}</b> を記録　就寝の記録でバッジ獲得`);
+    if (kind === 'bed')
+      cnote(`起床条件を満たすと ${diaHTML(maxSleepRank(key), 26, 24)} を獲得`);
+    else
+      note(`起床 <b>${hm(new Date(rec.wakeAt))}</b> を記録　就寝の記録でバッジ獲得`);
   }
 }
 /* 起床記録でバッジを付けてよいか。付けられない理由を返す（空文字なら条件クリア）。
