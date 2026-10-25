@@ -324,6 +324,23 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   0%{box-shadow:0 0 0 1.5px rgba(0,184,255,.9),0 0 0 0 rgba(0,184,255,.5)}
   100%{box-shadow:0 0 0 1.5px rgba(0,184,255,.5),0 0 0 14px rgba(0,184,255,0)}}
 
+/* ---------- アラームのスイッチ（1つだけ置く） ---------- */
+.swrow{display:flex;justify-content:flex-end;margin:0 0 8px}
+.sw{position:relative;width:58px;height:32px;border:none;padding:0;border-radius:16px;cursor:pointer;
+  background:var(--btn);box-shadow:inset 0 0 0 1.5px var(--line);transition:background .25s,box-shadow .25s}
+.sw i{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);transition:transform .3s cubic-bezier(.17,.89,.32,1)}
+.sw.on{background:linear-gradient(118deg,var(--accent2),var(--accent-dk));box-shadow:none}
+.sw.on i{transform:translateX(26px)}
+
+/* 見出しの横に並べる要素（RECORD の右の日付タイル） */
+.hrow{display:flex;align-items:center;gap:10px}
+.cal-tile{display:inline-flex;flex-direction:column;align-items:center;min-width:46px;border-radius:7px;overflow:hidden;
+  background:var(--card);box-shadow:0 0 0 1px var(--line);color:var(--fg);font-weight:800;line-height:1.1}
+.cal-tile .ct-m{width:100%;text-align:center;font-size:9px;padding:3px 0;color:#fff;
+  background:linear-gradient(118deg,var(--accent2),var(--accent-dk))}
+.cal-tile .ct-d{font-size:17px;padding:4px 10px 5px}
+
 /* ---------- バッジ ---------- */
 .badge{
   position:relative;overflow:hidden;display:inline-block;
@@ -747,21 +764,14 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   <!-- ============ アラーム ============ -->
   <section id="v-alarm">
     <div class="card">
-      <h2><i>ALARM</i>アラーム</h2>
-      <div class="row">
-        <div class="grow">
-          <div id="alarm-state" style="font-weight:800;font-size:17px;letter-spacing:.08em"></div>
-          <div class="muted" id="alarm-next"></div>
-        </div>
-        <button class="btn primary" id="toggle-alarm">ONにする</button>
-      </div>
+      <h2><i>ALARM</i></h2>
+      <div class="swrow"><button class="sw" id="toggle-alarm" role="switch" aria-label="アラーム"><i></i></button></div>
       <div class="cd" id="countdown"></div>
       <button class="btn big" id="sleep-mode" style="margin-top:10px">おやすみモードにする</button>
-      <div class="warn" id="alarm-warn"></div>
     </div>
 
     <div class="card">
-      <h2><i>SCHEDULE</i>予定時刻</h2>
+      <h2><i>SCHEDULE</i></h2>
       <div class="row">
         <div class="grow muted">就寝予定</div>
         <input type="time" id="bed-plan" style="width:130px">
@@ -777,7 +787,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
-      <h2><i>RECORD</i>今夜の記録</h2>
+      <h2 class="hrow"><i>RECORD</i><span class="cal-tile" id="rec-date"></span></h2>
       <button class="btn big bed" id="rec-bed" style="margin-bottom:10px">いま就寝する</button>
       <button class="btn big wake" id="rec-wake">いま起床した</button>
       <div id="rec-status" style="margin-top:14px"></div>
@@ -845,6 +855,18 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
           カメラの許可を毎回聞かれる場合は、iPhoneの「設定」→「アプリ」→「目覚まし」→「カメラ」を<b>許可</b>にしてください。
         </p>
       </div>
+    </div>
+
+    <div class="card">
+      <h2><i>SNOOZE</i></h2>
+      <div class="row"><div class="grow">回数の上限</div>
+        <input type="number" id="sn-max" min="0" max="10" inputmode="numeric" style="width:70px">
+        <span class="muted">回（0＝なし）</span></div>
+      <div class="row"><div class="grow">分数の選択肢</div>
+        <input type="text" id="sn-mins" style="width:150px"></div>
+      <p class="muted" style="margin:8px 0 0;font-size:11px;line-height:1.6">
+        カンマで区切って入力します（例：5,10,15）。最大6つです。
+      </p>
     </div>
 
     <div class="card">
@@ -994,13 +1016,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     <button class="btn big ghost" id="snooze-open" style="margin-top:10px">スヌーズ</button>
     <div id="snooze-pick" style="display:none;margin-top:14px">
       <div class="muted" style="margin-bottom:8px">何分後に鳴らしますか？</div>
-      <div class="seg" id="snooze-seg" style="margin:0">
-        <button data-min="5">5分</button>
-        <button data-min="10">10分</button>
-        <button data-min="15">15分</button>
-        <button data-min="20">20分</button>
-        <button data-min="30">30分</button>
-      </div>
+      <div class="seg" id="snooze-seg" style="margin:0"></div>
     </div>
   </div>
 </div>
@@ -1031,7 +1047,8 @@ const DEFAULT_STATE = {
              sound:'beep', qrData:'', qrCodes:[], keepScreen:false, customName:'', theme:'day',
              fallbackMin:5, badgeQr:true, badgeSec:60,
              dayHolo:4, dayGold:3, daySilver:2,
-             nightHolo:0, nightGold:0, nightSilver:0},
+             nightHolo:0, nightGold:0, nightSilver:0,
+             snoozeMax:3, snoozeMins:[5,10,15,20,30]},
   days: {}   // "YYYY-MM-DD"(夜) -> {bedPlan, wakePlan, bedAt, wakeAt, routine:[taskId], routineAt}
 };
 let S;
@@ -1656,7 +1673,7 @@ function toggleTask(t){
     note(`<b>${esc(res.step)}</b> 完了　→ 次は <b>${esc(res.next)}</b>`);
   } else {
     sfx('clear', {p:n / total});
-    toast('CLEAR', '');
+    celebrate('CLEAR！', null, '', '', false);
   }
 }
 $('add-task').onclick = () => addTask('night', $('new-task'));
@@ -1702,7 +1719,7 @@ function toggleDayTask(t){
     note(`<b>${esc(res.step)}</b> 完了　→ 次は <b>${esc(res.next)}</b>`);
   } else {
     sfx('clear', {p:n / total});
-    note(`日中 <b>${n} / ${total}</b> 完了`);
+    celebrate('CLEAR！', null, '', '', false);
   }
 }
 function renderDayBadgeSettings(){
@@ -1792,11 +1809,9 @@ function renderAlarm(){
     $('plan-sleep').textContent = `${Math.floor(d / 60)}時間${d % 60}分`; }
   $('qr-text').value   = st.qrText;
   $('fb-min').value    = st.fallbackMin === undefined ? 5 : st.fallbackMin;
-  $('alarm-state').textContent  = on ? 'ON' : 'OFF';
-  $('toggle-alarm').textContent = on ? 'OFFにする' : 'ONにする';
-  $('toggle-alarm').className   = 'btn' + (on ? '' : ' primary');
-  $('alarm-next').textContent   = on && AL.target
-    ? `${md(new Date(AL.target))} ${hm(new Date(AL.target))} に鳴ります` : '鳴りません';
+  $('toggle-alarm').classList.toggle('on', on);
+  $('sn-max').value  = st.snoozeMax ?? 3;
+  $('sn-mins').value = (st.snoozeMins || [5, 10, 15, 20, 30]).join(',');
   $('qr-state').textContent     = st.qrMode ? 'QRコードを読み取って停止' : 'ボタンで停止';
   $('qr-box').style.display     = st.qrMode ? 'block' : 'none';
   renderQrList();
@@ -1811,11 +1826,11 @@ function renderAlarm(){
   $('custom-row').style.display = st.sound === 'custom' ? 'flex' : 'none';
   $('custom-name').textContent  = st.customName || '音源が未設定です';
   renderCountdown();
-  renderWarn();
   $('rec-bed').innerHTML  = ICON_MOON + 'いま就寝する';
   $('rec-wake').innerHTML = ICON_SUN  + 'いま起床した';
 
   const key = activeNight(), rec = day(key, true);
+  $('rec-date').innerHTML = (() => { const d = parseKey(key); return `<span class="ct-m">${d.getMonth() + 1}月</span><span class="ct-d">${d.getDate()}</span>`; })();
   const r = sleepRank(key);
   const t = iso => iso ? hm(new Date(iso)) : '<span class="muted">未記録</span>';
   $('rec-status').innerHTML = `
@@ -1871,17 +1886,6 @@ function renderCountdown(){
   el.style.display = 'block';
   const s = Math.max(0, Math.round((AL.target - Date.now()) / 1000));
   el.innerHTML = `鳴るまで <b>${Math.floor(s/3600)}</b> 時間 <b>${Math.floor(s%3600/60)}</b> 分 <b>${s%60}</b> 秒`;
-}
-function renderWarn(){
-  const st = S.settings, w = [];
-  if (st.alarmOn && !AL.armed) w.push('⚠ 画面を一度タップすると音が有効になります');
-  if (st.alarmOn){
-    w.push('・<b>確実に鳴らすなら「おやすみモード」</b>。前面で待機するのでiOSに終了されません');
-    w.push('・画面を消しても鳴りますが、<b>長時間おくとiOSがアプリを終了させる</b>ことがあります'
-         + '（低電力モードを切り、他アプリを閉じておくと起きにくくなります）');
-    w.push('・一晩待機させるため、<b>充電しながら</b>のご使用を推奨します');
-  }
-  $('alarm-warn').innerHTML = w.map(x => `<div>${x}</div>`).join('');
 }
 
 /* 予定時刻の変更。過去の夜は変えず、いまから眠る夜（次に来る夜）から適用する。
@@ -2370,27 +2374,46 @@ function showFallback(){
 }
 
 /* ---- 起床確認とスヌーズ ---- */
+/* 残りのスヌーズ回数。上限は設定、使った回数は起床の記録まで数える */
+function snoozeLeft(){ return Math.max(0, (S.settings.snoozeMax || 0) - (AL.snoozeUsed || 0)); }
 function askWake(){
+  $('snooze-seg').innerHTML = S.settings.snoozeMins.map(m => `<button data-min="${m}">${m}分</button>`).join('');
   $('snooze-pick').style.display = 'none';
-  $('snooze-open').style.display = '';
+  const left = snoozeLeft();
+  $('snooze-open').style.display = left > 0 ? '' : 'none';
+  $('snooze-open').textContent = `スヌーズ（あと${left}回）`;
   $('wakeask').classList.add('on');
 }
 $('wake-yes').onclick = () => {
   $('wakeask').classList.remove('on');
+  AL.snoozeUsed = 0;                // 起床したので、スヌーズの回数をリセットする
   record('wake');                   // 押した時刻で記録・バッジ判定
 };
 $('snooze-open').onclick = () => {
   $('snooze-open').style.display = 'none';
   $('snooze-pick').style.display = 'block';
 };
-document.querySelectorAll('#snooze-seg button').forEach(b => b.onclick = async () => {
+$('snooze-seg').onclick = async e => {
+  const b = e.target.closest('button[data-min]');
+  if (!b) return;
   const m = Number(b.dataset.min);
+  AL.snoozeUsed = (AL.snoozeUsed || 0) + 1;
   $('wakeask').classList.remove('on');
   await armAudio();                 // 画面を触っているのでここで音声を確実に有効化
   setTarget(Date.now() + m * 60000);
   schedule(); renderAlarm();
-  note(`<b>${m}分後</b>にもう一度鳴らします`);
-});
+  note(`<b>${m}分後</b>にもう一度鳴らします（あと${snoozeLeft()}回）`);
+};
+$('sn-max').onchange = e => {
+  S.settings.snoozeMax = Math.max(0, Math.min(10, Math.floor(Number(e.target.value)) || 0));
+  save(); renderAlarm();
+};
+$('sn-mins').onchange = e => {
+  const v = [...new Set(e.target.value.split(/[,、\s]+/).map(Number).filter(x => x >= 1 && x <= 180))]
+    .sort((a, b) => a - b).slice(0, 6);
+  S.settings.snoozeMins = v.length ? v : [5, 10, 15, 20, 30];
+  save(); renderAlarm();
+};
 
 /* ---- バッジの見え方を確認するためのサンプル記録 ---- */
 $('sample-add').onclick = () => {
