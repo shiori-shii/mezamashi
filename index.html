@@ -781,7 +781,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
         <input type="time" id="wake-plan" style="width:130px">
       </div>
       <div class="row">
-        <div class="grow muted">総睡眠時間（予定）</div>
+        <div class="grow muted">予定睡眠時間</div>
         <b id="plan-sleep" style="font-size:15px"></b>
       </div>
     </div>
@@ -797,13 +797,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
   <!-- ============ 設定 ============ -->
   <section id="v-settings">
     <div class="card">
-      <h2><i>SOUND</i>アラーム音</h2>
-      <div class="seg" id="sound-seg" style="margin:0">
-        <button data-snd="beep">ビープ</button>
-        <button data-snd="siren">サイレン</button>
-        <button data-snd="soft">やわらか</button>
-        <button data-snd="custom">マイ音源</button>
-      </div>
+      <h2><i>SOUND</i></h2>
       <div class="row" id="custom-row" style="margin-top:10px">
         <div class="grow muted" id="custom-name"></div>
         <label class="btn sm" for="snd-file">音源を選ぶ</label>
@@ -811,19 +805,11 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
                accept="audio/*,.m4a,.mp3,.aac,.wav,.caf,.aiff,.aif,.mp4">
         <button class="btn sm ghost" id="snd-clear">削除</button>
       </div>
-      <p class="muted" style="margin:10px 0 0;font-size:11px;line-height:1.6">
-        タップで試聴できます。マイ音源はM4A・MP3・WAVなどが使えます（保護された曲は不可）。
-      </p>
     </div>
 
     <div class="card">
-      <h2><i>STOP</i>停止方法</h2>
-      <div class="row">
-        <div class="grow">
-          <div id="qr-state"></div>
-        </div>
-        <button class="btn" id="toggle-qr">切替</button>
-      </div>
+      <h2><i>STOP</i></h2>
+      <div class="swrow"><button class="sw" id="toggle-qr" role="switch" aria-label="QRで停止"><i></i></button></div>
       <div id="qr-box" style="display:none">
         <div id="qr-list"></div>
         <div class="row">
@@ -870,30 +856,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
-      <h2><i>BEHAVIOR</i>動作とテスト</h2>
-      <div class="row">
-        <div class="grow">
-          <div>画面の扱い</div>
-          <div class="muted" id="keep-state"></div>
-        </div>
-        <button class="btn" id="toggle-keep">切替</button>
-      </div>
-      <div class="row">
-        <button class="btn ghost sm grow" id="test-alarm">すぐ鳴らす</button>
-        <button class="btn ghost sm grow" id="test-30">30秒後にテスト</button>
-      </div>
-      <div class="row">
-        <button class="btn ghost sm grow" id="sample-add">サンプル記録を入れる</button>
-        <button class="btn ghost sm grow" id="sample-del">サンプルを消す</button>
-      </div>
-      <p class="muted" style="margin:10px 0 0;font-size:11px;line-height:1.6">
-        サンプルはカレンダーで各バッジの見え方を確かめるための仮データです。
-        記録のない日だけに入り、「サンプルを消す」で元に戻せます。
-      </p>
-    </div>
-
-    <div class="card">
-      <h2><i>DAYTIME</i>日中のルーティンのタスク</h2>
+      <h2><i>DAYTIME</i></h2>
       <div id="dtask-edit"></div>
       <div class="row" style="margin-top:12px">
         <input type="text" id="new-dtask" class="grow" placeholder="例：スムージー → ジムに向かう">
@@ -902,7 +865,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
-      <h2><i>DAYTIME BADGES</i>日中のバッジ条件</h2>
+      <h2><i>DAYTIME BADGES</i></h2>
       <div class="muted" id="db-total" style="margin-bottom:10px"></div>
       <div class="row"><div class="grow">虹（ホログラム）</div>
         <input type="number" id="db-holo" min="1" max="99" inputmode="numeric" style="width:64px">
@@ -919,7 +882,16 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
-      <h2><i>NIGHT BADGES</i>夜のバッジ条件</h2>
+      <h2><i>NIGHT</i></h2>
+      <div id="task-edit"></div>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="new-task" class="grow" placeholder="例：ストレッチ → 歯みがき">
+        <button class="btn" id="add-task">追加</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><i>NIGHT BADGES</i></h2>
       <div class="muted" id="nb-total" style="margin-bottom:10px"></div>
       <div class="row"><div class="grow">虹（ホログラム）</div>
         <input type="number" id="nb-holo" min="0" max="99" inputmode="numeric" style="width:64px">
@@ -933,16 +905,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
-      <h2><i>NIGHT</i>夜のルーティンのタスク</h2>
-      <div id="task-edit"></div>
-      <div class="row" style="margin-top:12px">
-        <input type="text" id="new-task" class="grow" placeholder="例：ストレッチ → 歯みがき">
-        <button class="btn" id="add-task">追加</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2><i>THEME</i>テーマ</h2>
+      <h2><i>THEME</i></h2>
       <div class="seg" id="theme-seg" style="margin:0">
         <button data-th="day">DAY</button>
         <button data-th="night">NIGHT</button>
@@ -1812,7 +1775,6 @@ function renderAlarm(){
   $('toggle-alarm').classList.toggle('on', on);
   $('sn-max').value  = st.snoozeMax ?? 3;
   $('sn-mins').value = (st.snoozeMins || [5, 10, 15, 20, 30]).join(',');
-  $('qr-state').textContent     = st.qrMode ? 'QRコードを読み取って停止' : 'ボタンで停止';
   $('qr-box').style.display     = st.qrMode ? 'block' : 'none';
   renderQrList();
   $('bq-state').textContent = st.badgeQr
@@ -1820,10 +1782,10 @@ function renderAlarm(){
     : 'QRなしでもバッジを付与（外出時など）';
   $('bq-sec-row').style.display = st.badgeQr ? 'flex' : 'none';
   $('bq-sec').value = st.badgeSec;
-  $('keep-state').textContent   = st.keepScreen ? '画面を点けたままにする' : '画面は自動で消える（推奨）';
   document.querySelectorAll('#sound-seg button').forEach(b =>
     b.classList.toggle('on', b.dataset.snd === st.sound));
-  $('custom-row').style.display = st.sound === 'custom' ? 'flex' : 'none';
+  $('custom-row').style.display = 'flex';
+  $('toggle-qr').classList.toggle('on', st.qrMode);
   $('custom-name').textContent  = st.customName || '音源が未設定です';
   renderCountdown();
   $('rec-bed').innerHTML  = ICON_MOON + 'いま就寝する';
@@ -1834,7 +1796,6 @@ function renderAlarm(){
   const r = sleepRank(key);
   const t = iso => iso ? hm(new Date(iso)) : '<span class="muted">未記録</span>';
   $('rec-status').innerHTML = `
-    <div class="kv"><span>対象</span><span>${md(parseKey(key))} の夜</span></div>
     <div class="kv"><span class="lbl bed">${ICON_MOON}就寝</span><span>${t(rec.bedAt)}</span></div>
     <div class="kv"><span class="lbl wake">${ICON_SUN}起床</span><span>${t(rec.wakeAt)}</span></div>
     ${rec.bedAt && !rec.wakeAt ? `<div class="kv"><span>獲得できる</span><span>${diaHTML(maxSleepRank(key), 24, 22)}</span></div>` : ''}
@@ -1921,11 +1882,6 @@ $('fb-min').onchange = e => {
 };
 $('toggle-alarm').onclick = () => setAlarm(!S.settings.alarmOn);
 $('toggle-qr').onclick    = () => { S.settings.qrMode = !S.settings.qrMode; save(); renderAlarm(); };
-$('toggle-keep').onclick  = () => {
-  S.settings.keepScreen = !S.settings.keepScreen; save();
-  if (S.settings.keepScreen && S.settings.alarmOn) requestWakeLock(); else releaseWakeLock();
-  renderAlarm();
-};
 document.querySelectorAll('#sound-seg button').forEach(b => b.onclick = async () => {
   if (b.dataset.snd === 'custom' && !S.settings.customName){ $('snd-file').click(); return; }
   S.settings.sound = b.dataset.snd; save();
@@ -2376,6 +2332,21 @@ function showFallback(){
 /* ---- 起床確認とスヌーズ ---- */
 /* 残りのスヌーズ回数。上限は設定、使った回数は起床の記録まで数える */
 function snoozeLeft(){ return Math.max(0, (S.settings.snoozeMax || 0) - (AL.snoozeUsed || 0)); }
+const SNOOZE_RANK_ORDER = {none: 0, bronze: 1, silver: 2, gold: 3, holo: 4};
+/* この夜の起床で、就寝がホログラムの条件を満たしているか */
+function bedHoloAt(key){
+  const r = S.days[key];
+  return !!(r && r.bedAt) && rankOf(diffMin(key, 'bed')) === 'holo';
+}
+/* 起床が「予定からの差 + m 分」になった時に得られるランク。
+   5分以上のスヌーズは、ホログラムの条件（予定+5分以内）を外れるので金まで。 */
+function rankAfterSnooze(key, m){
+  const d = (Date.now() - planAt(key, 'wake').getTime()) / 60000 + m;
+  let w = wakeRankOf(d);
+  if (w === 'holo' && m >= 5) w = 'gold';
+  if (w === 'holo') return bedHoloAt(key) ? 'holo' : 'gold';
+  return w || 'none';
+}
 function askWake(){
   $('snooze-seg').innerHTML = S.settings.snoozeMins.map(m => `<button data-min="${m}">${m}分</button>`).join('');
   $('snooze-pick').style.display = 'none';
@@ -2397,6 +2368,14 @@ $('snooze-seg').onclick = async e => {
   const b = e.target.closest('button[data-min]');
   if (!b) return;
   const m = Number(b.dataset.min);
+  const wk = nightFor('wake');
+  const before = rankAfterSnooze(wk, 0), after = rankAfterSnooze(wk, m);
+  if (SNOOZE_RANK_ORDER[after] < SNOOZE_RANK_ORDER[before]){
+    const msg = after === 'none'
+      ? 'このスヌーズを選ぶと、この日のバッジはなくなります。よろしいですか？'
+      : 'このスヌーズを選ぶと、この日の獲得できるバッジが下がります。よろしいですか？';
+    if (!confirm(msg)) return;
+  }
   AL.snoozeUsed = (AL.snoozeUsed || 0) + 1;
   $('wakeask').classList.remove('on');
   await armAudio();                 // 画面を触っているのでここで音声を確実に有効化
@@ -2416,43 +2395,7 @@ $('sn-mins').onchange = e => {
 };
 
 /* ---- バッジの見え方を確認するためのサンプル記録 ---- */
-$('sample-add').onclick = () => {
-  // 予定とのズレ（分）を変えて、ホロ→金→銀→銅→なし を一巡させる
-  const deltas = [-10, 0, 8, 14, 22, 28, 35, 44, 55, 70, -5, 12, 26, 40];
-  let n = 0;
-  for (let i = 1; i <= 14; i++){
-    const key = ymd(addDays(new Date(), -i));
-    const rec = S.days[key];
-    if (rec && (rec.bedAt || rec.wakeAt)) continue;      // 本物の記録は触らない
-    const r = day(key, true);
-    const d = deltas[(i - 1) % deltas.length];
-    r.sample = true;
-    r.bedPlan = r.bedPlan || S.settings.bedPlan;
-    r.wakePlan = r.wakePlan || S.settings.wakePlan;
-    r.bedAt  = new Date(planAt(key, 'bed').getTime()  + d * 60000).toISOString();
-    r.wakeAt = new Date(planAt(key, 'wake').getTime() + (i % 3 ? d : d + 20) * 60000).toISOString();
-    if (i % 3 !== 0)                                     // 3日に1日はルーティン未達成
-      r.routine = S.tasks.flatMap(t => stepsOf(t).map((_, j) => stepKey(t, j)));
-    n++;
-  }
-  save(); renderAll();
-  note(n ? `サンプルを <b>${n}日分</b> 入れました` : '空いている日がありませんでした');
-};
-$('sample-del').onclick = () => {
-  const keys = Object.keys(S.days).filter(k => S.days[k].sample);
-  if (!keys.length){ note('サンプルはありません'); return; }
-  if (!confirm(`サンプル記録 ${keys.length}日分を削除しますか？`)) return;
-  keys.forEach(k => { delete S.days[k]; });
-  save(); renderAll();
-  note(`サンプル <b>${keys.length}日分</b> を削除しました`);
-};
 
-$('test-alarm').onclick = async () => { await armAudio(); AL.isTest = true; fire(); };
-$('test-30').onclick = async () => {
-  await armAudio();
-  setTarget(Date.now() + 30000); schedule(); renderAlarm();
-  note('30秒後に鳴ります');
-};
 
 /* ---- 見張り（タイマーが絞られても復帰時に検知） ---- */
 setInterval(() => {
