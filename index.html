@@ -905,6 +905,22 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     </div>
 
     <div class="card">
+      <h2><i>BADGE TIME</i></h2>
+      <div class="row"><div class="grow">虹（ホログラム）</div>
+        <input type="time" id="bt-holo" style="width:120px"></div>
+      <div class="row"><div class="grow">金</div>
+        <input type="time" id="bt-gold" style="width:120px"></div>
+      <div class="row"><div class="grow">銀</div>
+        <input type="time" id="bt-silver" style="width:120px"></div>
+      <div class="row"><div class="grow">銅</div>
+        <input type="time" id="bt-bronze" style="width:120px"></div>
+      <p class="muted" style="margin:10px 0 0;font-size:11px;line-height:1.6">
+        起床の時刻で決まります。その時刻までに起きれば、その段階のバッジです。
+        時刻は 虹 ≦ 金 ≦ 銀 ≦ 銅 の順にしてください。
+      </p>
+    </div>
+
+    <div class="card">
       <h2><i>THEME</i></h2>
       <div class="seg" id="theme-seg" style="margin:0">
         <button data-th="day">DAY</button>
@@ -932,7 +948,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       </div>
       <div id="cal-body"></div>
       <p class="muted" style="margin:6px 0 0;font-size:11px;line-height:1.6">
-        ダイヤのバッジ＝就寝・起床がそろった日。日付をタップで詳細。<br>
+        ダイヤのバッジ＝起床の時刻で決まる日。日付をタップで詳細。<br>
         マスの枠は睡眠時間の長さ：<b>虹＝8〜9時間</b>／金＝7時間半〜8時間／銀＝7〜7時間半。
       </p>
     </div>
@@ -1011,7 +1027,8 @@ const DEFAULT_STATE = {
              fallbackMin:5, badgeQr:true, badgeSec:60,
              dayHolo:4, dayGold:3, daySilver:2,
              nightHolo:0, nightGold:0, nightSilver:0,
-             snoozeMax:3, snoozeMins:[5,10,15,20,30]},
+             snoozeMax:3, snoozeMins:[5,10,15,20,30],
+             badgeT:{holo:'09:00', gold:'10:00', silver:'11:00', bronze:'12:00'}},
   days: {}   // "YYYY-MM-DD"(夜) -> {bedPlan, wakePlan, bedAt, wakeAt, routine:[taskId], routineAt}
 };
 let S;
@@ -1141,30 +1158,25 @@ function day(key, create = false){
     S.days[key] = {bedPlan:S.settings.bedPlan, wakePlan:S.settings.wakePlan, routine:[]};
   return S.days[key];
 }
-// 就寝・起床がそろって初めて1バッジ（低いほうのランクを採用）
-/* 起床の時刻で決まる段階。予定+5分以内はホログラムの候補（就寝が足りなければ金止まり） */
-function wakeRankOf(diff){
-  if (diff === null) return null;
-  if (diff <= 5)  return 'holo';
-  if (diff <= 15) return 'gold';
-  if (diff <= 30) return 'silver';
-  if (diff <= 45) return 'bronze';
+/* 睡眠のバッジは起床の時刻で決まる（就寝は関係しない）。
+   設定の時刻までに起きれば、その段階のバッジ。例：9時までなら虹、10時までなら金。 */
+const hmToMin = t => { const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; };
+function wakeRankAt(ms){
+  const d = new Date(ms), m = d.getHours() * 60 + d.getMinutes(), T = S.settings.badgeT;
+  if (m <= hmToMin(T.holo))   return 'holo';
+  if (m <= hmToMin(T.gold))   return 'gold';
+  if (m <= hmToMin(T.silver)) return 'silver';
+  if (m <= hmToMin(T.bronze)) return 'bronze';
   return 'none';
 }
-/* 睡眠のバッジ。起床の記録があれば獲得できる（起床だけで金まで）。
-   ホログラムは、就寝もホログラムで、かつ起床が予定+5分以内のときだけ。 */
 function sleepRank(key){
   const rec = S.days[key];
   if (!rec || !rec.wakeAt) return null;
   if (rec.noBadge) return 'none';          // 起床時にQR解除の条件を満たせなかった
-  const w = wakeRankOf(diffMin(key, 'wake'));
-  if (w === 'holo') return rec.bedAt && rankOf(diffMin(key, 'bed')) === 'holo' ? 'holo' : 'gold';
-  return w;
+  return wakeRankAt(new Date(rec.wakeAt).getTime());
 }
-/* 就寝の時点で、起床の条件さえ満たせば得られる最高ランク（就寝がホログラムなら虹、それ以外は金） */
-function maxSleepRank(key){
-  return rankOf(diffMin(key, 'bed')) === 'holo' ? 'holo' : 'gold';
-}
+/* 就寝の時点で得られる最高ランク（早く起きれば虹まで届く） */
+function maxSleepRank(){ return 'holo'; }
 /* 夜のバッジ。0 の設定は「全部」（虹）または「なし」（金・銀）を意味する */
 /* タスクが作られた時刻（IDに入っている）。入っていなければ 0 ＝ 最初からあった */
 const taskBorn = t => { const m = /^t(\d{12,})/.exec(t.id); return m ? Number(m[1]) : 0; };
@@ -1772,6 +1784,7 @@ function renderAlarm(){
     $('plan-sleep').textContent = `${Math.floor(d / 60)}時間${d % 60}分`; }
   $('qr-text').value   = st.qrText;
   $('fb-min').value    = st.fallbackMin === undefined ? 5 : st.fallbackMin;
+  ['holo', 'gold', 'silver', 'bronze'].forEach(k => { $('bt-' + k).value = st.badgeT[k]; });
   $('toggle-alarm').classList.toggle('on', on);
   $('sn-max').value  = st.snoozeMax ?? 3;
   $('sn-mins').value = (st.snoozeMins || [5, 10, 15, 20, 30]).join(',');
@@ -1880,6 +1893,16 @@ $('fb-min').onchange = e => {
   S.settings.fallbackMin = Math.max(0, Math.min(60, Number(e.target.value) || 0));
   save(); renderAlarm();
 };
+['holo', 'gold', 'silver', 'bronze'].forEach(k => {
+  $('bt-' + k).onchange = e => {
+    if (!e.target.value) return;
+    S.settings.badgeT[k] = e.target.value;
+    const T = S.settings.badgeT, ok = hmToMin(T.holo) <= hmToMin(T.gold) && hmToMin(T.gold) <= hmToMin(T.silver)
+      && hmToMin(T.silver) <= hmToMin(T.bronze);
+    if (!ok) note('時刻は 虹 ≦ 金 ≦ 銀 ≦ 銅 の順にしてください');
+    save(); renderAll();
+  };
+});
 $('toggle-alarm').onclick = () => setAlarm(!S.settings.alarmOn);
 $('toggle-qr').onclick    = () => { S.settings.qrMode = !S.settings.qrMode; save(); renderAlarm(); };
 document.querySelectorAll('#sound-seg button').forEach(b => b.onclick = async () => {
@@ -2333,20 +2356,8 @@ function showFallback(){
 /* 残りのスヌーズ回数。上限は設定、使った回数は起床の記録まで数える */
 function snoozeLeft(){ return Math.max(0, (S.settings.snoozeMax || 0) - (AL.snoozeUsed || 0)); }
 const SNOOZE_RANK_ORDER = {none: 0, bronze: 1, silver: 2, gold: 3, holo: 4};
-/* この夜の起床で、就寝がホログラムの条件を満たしているか */
-function bedHoloAt(key){
-  const r = S.days[key];
-  return !!(r && r.bedAt) && rankOf(diffMin(key, 'bed')) === 'holo';
-}
-/* 起床が「予定からの差 + m 分」になった時に得られるランク。
-   5分以上のスヌーズは、ホログラムの条件（予定+5分以内）を外れるので金まで。 */
-function rankAfterSnooze(key, m){
-  const d = (Date.now() - planAt(key, 'wake').getTime()) / 60000 + m;
-  let w = wakeRankOf(d);
-  if (w === 'holo' && m >= 5) w = 'gold';
-  if (w === 'holo') return bedHoloAt(key) ? 'holo' : 'gold';
-  return w || 'none';
-}
+/* スヌーズすると起きる時刻が遅れる。今起きた場合と比べて、ランクが下がるかを見る */
+function rankAfterSnooze(m){ return wakeRankAt(Date.now() + m * 60000); }
 function askWake(){
   $('snooze-seg').innerHTML = S.settings.snoozeMins.map(m => `<button data-min="${m}">${m}分</button>`).join('');
   $('snooze-pick').style.display = 'none';
@@ -2368,8 +2379,7 @@ $('snooze-seg').onclick = async e => {
   const b = e.target.closest('button[data-min]');
   if (!b) return;
   const m = Number(b.dataset.min);
-  const wk = nightFor('wake');
-  const before = rankAfterSnooze(wk, 0), after = rankAfterSnooze(wk, m);
+  const before = rankAfterSnooze(0), after = rankAfterSnooze(m);
   if (SNOOZE_RANK_ORDER[after] < SNOOZE_RANK_ORDER[before]){
     const msg = after === 'none'
       ? 'このスヌーズを選ぶと、この日のバッジはなくなります。よろしいですか？'
@@ -2767,7 +2777,7 @@ function statsInto(kind, elId){
 
   const st = S.settings;
   const COND = kind === 'sleep'
-    ? {holo:'予定までに達成', gold:'15分以内', silver:'30分以内', bronze:'45分以内'}
+    ? {holo:`${S.settings.badgeT.holo}まで`, gold:`${S.settings.badgeT.gold}まで`, silver:`${S.settings.badgeT.silver}まで`, bronze:`${S.settings.badgeT.bronze}まで`}
     : kind === 'day'
     ? {holo:`${st.dayHolo}件以上`, gold:`${st.dayGold}件以上`, silver:`${st.daySilver}件以上`, bronze:'—'}
     : {holo:'全部完了／週7日', gold:'週6日', silver:'週5日', bronze:'—'};
