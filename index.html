@@ -1103,9 +1103,22 @@ function nightFor(kind, t = Date.now()){
 /* いまが「どの夜」かは、起床予定を境に切り替える。
    就寝予定への近さで決めると、朝のうちはまだ前夜が選ばれてしまい、
    その時間帯に触った記録やルーティンが1日前にずれてしまうため。 */
+/* いまの夜（ルーティンや就寝の記録が入る夜）。切り替えは「起床の記録」を基準にする。
+   起床を記録するまでは、起床予定の時刻が来ても前の夜のまま。
+   起床を記録したら、その日の夜（次に来る夜）へ。就寝を記録した夜もそこへ合わせる。 */
 function currentNight(t = Date.now()){
-  const prev = ymd(addDays(new Date(t), -1));
-  return t < planAt(prev, 'wake').getTime() ? prev : ymd(new Date(t));
+  let lastWake = 0, lastBed = '';
+  Object.keys(S.days).forEach(k => {
+    const r = S.days[k];
+    if (r.wakeAt && new Date(r.wakeAt).getTime() <= t) lastWake = Math.max(lastWake, new Date(r.wakeAt).getTime());
+    if (r.bedAt && new Date(r.bedAt).getTime() <= t && k > lastBed) lastBed = k;
+  });
+  if (!lastWake){                            // 起床の記録がまだ無い時：就寝した夜があればその夜、無ければ従来どおり
+    if (lastBed) return lastBed;
+    const prev = ymd(addDays(new Date(t), -1));
+    return t < planAt(prev, 'wake').getTime() ? prev : ymd(new Date(t));
+  }
+  return [ymd(new Date(lastWake)), lastBed].sort().pop();
 }
 const nightKey = (t = Date.now()) => currentNight(t);
 function diffMin(key, kind){
