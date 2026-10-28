@@ -992,11 +992,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
     <h3>おはようございます</h3>
     <p class="muted" style="margin:0 0 16px">起床しましたか？<br>「起床しました」を押した時刻を記録します。</p>
     <button class="btn big primary" id="wake-yes">起床しました</button>
-    <button class="btn big ghost" id="snooze-open" style="margin-top:10px">スヌーズ</button>
-    <div id="snooze-pick" style="display:none;margin-top:14px">
-      <div class="muted" style="margin-bottom:8px">何分後に鳴らしますか？</div>
-      <div class="seg" id="snooze-seg" style="margin:0"></div>
-    </div>
+    <div id="wake-snooze" style="margin-top:10px"></div>
   </div>
 </div>
 
@@ -1009,6 +1005,7 @@ input[type=text]:focus,input[type=time]:focus{outline:2px solid var(--accent2);o
       <div class="camframe"></div>
     </div>
     <div class="muted" id="cam-msg" style="margin-top:10px;min-height:32px"></div>
+    <div id="cam-snooze" style="margin-top:10px"></div>
     <button class="btn big" id="cam-close" style="margin-top:6px">閉じる</button>
   </div>
 </div>
@@ -2331,6 +2328,8 @@ function fire(){
          </div>
        </div>`
     : `<button class="btn big primary" id="stop-btn">停止する</button>`;
+  $('ring-body').insertAdjacentHTML('beforeend', '<div id="ring-snooze" style="margin-top:12px"></div>');
+  fillSnooze('ring-snooze');
   $('ring').classList.add('on');
   if (S.settings.qrMode){
     $('qr-stop').onclick = scanToStop;
@@ -2372,11 +2371,7 @@ const SNOOZE_RANK_ORDER = {none: 0, bronze: 1, silver: 2, gold: 3, holo: 4};
 /* スヌーズすると起きる時刻が遅れる。今起きた場合と比べて、ランクが下がるかを見る */
 function rankAfterSnooze(m){ return wakeRankAt(Date.now() + m * 60000); }
 function askWake(){
-  $('snooze-seg').innerHTML = S.settings.snoozeMins.map(m => `<button data-min="${m}">${m}分</button>`).join('');
-  $('snooze-pick').style.display = 'none';
-  const left = snoozeLeft();
-  $('snooze-open').style.display = left > 0 ? '' : 'none';
-  $('snooze-open').textContent = `スヌーズ（あと${left}回）`;
+  fillSnooze('wake-snooze');
   $('wakeask').classList.add('on');
 }
 $('wake-yes').onclick = () => {
@@ -2384,14 +2379,19 @@ $('wake-yes').onclick = () => {
   AL.snoozeUsed = 0;                // 起床したので、スヌーズの回数をリセットする
   record('wake');                   // 押した時刻で記録・バッジ判定
 };
-$('snooze-open').onclick = () => {
-  $('snooze-open').style.display = 'none';
-  $('snooze-pick').style.display = 'block';
-};
-$('snooze-seg').onclick = async e => {
-  const b = e.target.closest('button[data-min]');
-  if (!b) return;
-  const m = Number(b.dataset.min);
+/* スヌーズのボタン（ダイヤの下など）。押すと分数の選択肢が開く */
+function snoozeHTML(){
+  const left = snoozeLeft();
+  if (left <= 0) return '';
+  return `<button class="btn big ghost snz-btn">スヌーズ（あと${left}回）</button>
+    <div class="snz-pick" style="display:none;margin-top:12px">
+      <div class="muted" style="margin-bottom:8px">何分後に鳴らしますか？</div>
+      <div class="seg snz-seg" style="margin:0">${S.settings.snoozeMins.map(m => `<button data-min="${m}">${m}分</button>`).join('')}</div>
+    </div>`;
+}
+function fillSnooze(id){ $(id).innerHTML = snoozeHTML(); }
+/* 分数を選んだ時。ランクが下がるなら確認してから、止めて鳴らし直す */
+function trySnooze(m){
   const before = rankAfterSnooze(0), after = rankAfterSnooze(m);
   if (SNOOZE_RANK_ORDER[after] < SNOOZE_RANK_ORDER[before]){
     const msg = after === 'none'
@@ -2399,13 +2399,33 @@ $('snooze-seg').onclick = async e => {
       : 'このスヌーズを選ぶと、この日の獲得できるバッジが下がります。よろしいですか？';
     if (!confirm(msg)) return;
   }
-  AL.snoozeUsed = (AL.snoozeUsed || 0) + 1;
+  snoozeNow(m);
+}
+/* 鳴っている最中でも、読み取り前でも、止めて指定の分数後に鳴らし直す */
+async function snoozeNow(m){
+  if (AL.ringing){
+    AL.ringing = false; AL.ringStart = null;
+    vibrateStop(); muteNow(); restoreKeeper(); closeCam();
+    $('ring').classList.remove('on');
+  }
   $('wakeask').classList.remove('on');
+  AL.snoozeUsed = (AL.snoozeUsed || 0) + 1;
+  setTarget(Date.now() + m * 60000);       // 鳴る時刻は先に記録する（音声の準備を待たない）
+  renderAlarm();
   await armAudio();                 // 画面を触っているのでここで音声を確実に有効化
-  setTarget(Date.now() + m * 60000);
-  schedule(); renderAlarm();
+  schedule();
   note(`<b>${m}分後</b>にもう一度鳴らします（あと${snoozeLeft()}回）`);
-};
+}
+document.addEventListener('click', e => {
+  const open = e.target.closest('.snz-btn');
+  if (open){
+    const pick = open.nextElementSibling;
+    pick.style.display = pick.style.display === 'none' ? 'block' : 'none';
+    return;
+  }
+  const b = e.target.closest('.snz-seg button[data-min]');
+  if (b) trySnooze(Number(b.dataset.min));
+});
 $('sn-max').onchange = e => {
   S.settings.snoozeMax = Math.max(0, Math.min(10, Math.floor(Number(e.target.value)) || 0));
   save(); renderAlarm();
@@ -2465,6 +2485,7 @@ async function openCam(title, onFound){
   clearTimeout(closeCam._t);
   $('cam-title').textContent = title;
   $('cam-msg').textContent = 'カメラを起動中…';
+  if (AL.ringing) fillSnooze('cam-snooze'); else $('cam-snooze').innerHTML = '';
   $('cam').classList.add('on');
   try{
     camStream = await getCam();
